@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  memgraph:
+    image: memgraph/memgraph-platform:latest
+    container_name: nextgen_memgraph
+    restart: unless-stopped
+    ports:
+      - "7687:7687"   # Bolt (GQLAlchemy / Cypher)
+      - "7444:7444"   # HTTP status
+      - "3000:3000"   # Memgraph Lab UI
+    volumes:
+      - ./data:/data                # CSV data mount for LOAD CSV
+      - memgraph_lib:/var/lib/memgraph
+      - memgraph_log:/var/log/memgraph
+    environment:
+      - MEMGRAPH_MEMORY_LIMIT=4096  # 4 GB RAM limit
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "7687"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: nextgen_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      memgraph:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - MEMGRAPH_HOST=memgraph
+      - MEMGRAPH_PORT=7687
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    volumes:
+      - ./saved_models:/app/saved_models
+      - ./logs:/app/logs
+
+volumes:
+  memgraph_lib:
+  memgraph_log:
