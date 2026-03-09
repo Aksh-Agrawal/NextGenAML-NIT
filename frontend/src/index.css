@@ -1,0 +1,96 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@theme {
+  --color-royal-navy: #0A0F1F;
+  --color-royal-gold: #D4AF37;
+  --color-royal-gold-light: #F4CF67;
+  --color-royal-gold-dark: #B48F17;
+  --color-soft-blue: #4FA3FF;
+  --color-fraud-red: #FF4C4C;
+  --color-glass-white: rgba(255, 255, 255, 0.05);
+  --color-glass-gold: rgba(212, 175, 55, 0.1);
+
+  --font-playfair: "Playfair Display", serif;
+  --font-inter: "Inter", sans-serif;
+
+  --shadow-gold-glow: 0 0 20px rgba(212, 175, 55, 0.3);
+  --shadow-red-glow: 0 0 20px rgba(255, 76, 76, 0.3);
+
+  --background-image-royal-gradient: linear-gradient(135deg, #0A0F1F 0%, #161B2E 100%);
+  --background-image-gold-gradient: linear-gradient(135deg, #D4AF37 0%, #F4CF67 100%);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: #0A0F1F;
+    color: #E2E8F0;
+    font-family: var(--font-inter);
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-playfair);
+  }
+}
+
+@layer components {
+  .glass-morphism {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .gold-glass {
+    background: rgba(212, 175, 55, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+  }
+
+  .gold-text-shimmer {
+    background: linear-gradient(90deg, #D4AF37, #F4CF67, #D4AF37);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s linear infinite;
+  }
+}
+
+@layer utilities {
+  @keyframes shimmer {
+    to {
+      background-position: 200% center;
+    }
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0A0F1F;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #D4AF37;
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #F4CF67;
+  }
+}
