@@ -10,11 +10,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir fastapi uvicorn pydantic loguru \
-    gqlalchemy requests python-dotenv prometheus-client \
-    numpy pandas scikit-learn
+    requests python-dotenv prometheus-client \
+    numpy pandas scikit-learn networkx neo4j httpx python-multipart
 
 # Copy source code
-COPY . .
+COPY api/ ./api/
+COPY graph_db/ ./graph_db/
+COPY ml/ ./ml/
+COPY ingestion/ ./ingestion/
+COPY training/ ./training/
+COPY transaction.csv .
+COPY .env* ./
 
 EXPOSE 8000
 
