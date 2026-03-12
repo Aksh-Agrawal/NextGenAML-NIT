@@ -15,10 +15,10 @@ def get_subgraph(account_id: str, hops: int = 2):
 
 
 @router.get("/full")
-def get_full_graph():
+def get_full_graph(limit: int = 500):
     from api.main import graph_manager
 
-    return graph_manager.get_full_graph()
+    return graph_manager.get_full_graph(limit=limit)
 
 
 @router.get("/stats", response_model=GraphStats)

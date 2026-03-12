@@ -31,17 +31,26 @@ class RiskEngine:
 
     def compute_patterns(self):
         """Pre-compute pattern detection results."""
+        self._account_pattern_type: dict[str, str] = {}
+
         cycles = self.gm.detect_circular_patterns()
         for c in cycles:
-            self._pattern_accounts.update(c["account_chain"])
+            for acc in c["account_chain"]:
+                self._pattern_accounts.add(acc)
+                if acc not in self._account_pattern_type:
+                    self._account_pattern_type[acc] = "Circular Flow"
 
         structuring = self.gm.detect_structuring()
         for s in structuring:
             self._pattern_accounts.add(s["sender"])
+            if s["sender"] not in self._account_pattern_type:
+                self._account_pattern_type[s["sender"]] = "Structuring"
 
         dormant = self.gm.detect_dormant_activations()
         for d in dormant:
             self._pattern_accounts.add(d["account_id"])
+            if d["account_id"] not in self._account_pattern_type:
+                self._account_pattern_type[d["account_id"]] = "Dormant Activation"
 
         self._patterns_computed = True
 
@@ -133,23 +142,12 @@ class RiskEngine:
 
     def _get_pattern_type(self, account_id: str) -> str:
         """Determine the primary pattern associated with an account."""
-        # Check circular
-        cycles = self.gm.detect_circular_patterns()
-        for c in cycles:
-            if account_id in c["account_chain"]:
-                return "Circular Flow"
+        if not self._patterns_computed:
+            self.compute_patterns()
 
-        # Check structuring
-        structuring = self.gm.detect_structuring()
-        for s in structuring:
-            if s["sender"] == account_id:
-                return "Structuring"
-
-        # Check dormant
-        dormant = self.gm.detect_dormant_activations()
-        for d in dormant:
-            if d["account_id"] == account_id:
-                return "Dormant Activation"
+        cached = self._account_pattern_type.get(account_id)
+        if cached:
+            return cached
 
         feat = self.gm.get_account_features(account_id)
         if feat:

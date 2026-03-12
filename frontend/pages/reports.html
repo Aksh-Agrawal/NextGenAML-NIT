@@ -1,0 +1,30 @@
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="lucide-file-plus"></i> Generate SAR Report</h3>
+    </div>
+    <div class="card-body">
+      <div class="input-group">
+        <input type="text" id="report-account-id" placeholder="Account ID…" />
+        <button class="btn btn-primary" onclick="generateReport()">Generate</button>
+      </div>
+      <div id="report-result" class="result-box"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="lucide-bar-chart-2"></i> Report Stats</h3>
+    </div>
+    <div class="card-body" id="report-stats">
+      <p class="muted">Loading…</p>
+    </div>
+  </div>
+</div>
+<div class="card mt-1">
+  <div class="card-header">
+    <h3><i class="lucide-file-text"></i> Previous Reports</h3>
+  </div>
+  <div class="card-body" id="reports-list">
+    <p class="muted">Loading…</p>
+  </div>
+</div>

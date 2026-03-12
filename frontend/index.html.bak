@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NextGenAML — Anti-Money Laundering Intelligence</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/lucide-static@latest/font/lucide.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <!-- ── Upload Overlay ─────────────────────────────── -->
+    <div id="upload-overlay" style="display: none">
+      <div class="overlay-card">
+        <div class="overlay-icon">
+          <i class="lucide-shield-alert"></i>
+        </div>
+        <h1>NextGenAML</h1>
+        <p class="overlay-sub">
+          Upload your transaction data to begin analysis
+        </p>
+        <form id="overlay-upload-form">
+          <label class="file-drop" id="overlay-drop-zone">
+            <i class="lucide-upload-cloud"></i>
+            <span>Drop CSV file here or click to browse</span>
+            <input type="file" accept=".csv" id="overlay-file-input" hidden />
+          </label>
+          <div
+            class="upload-progress"
+            id="overlay-progress"
+            style="display: none"
+          >
+            <div class="progress-bar">
+              <div class="progress-fill" id="overlay-progress-fill"></div>
+            </div>
+            <span id="overlay-progress-text">Uploading…</span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Sidebar ────────────────────────────────────── -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <i class="lucide-shield-check logo-icon"></i>
+          <span class="logo-text">NextGen<strong>AML</strong></span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">OVERVIEW</div>
+        <a href="#" class="nav-item active" data-page="dashboard">
+          <i class="lucide-layout-dashboard"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-page="analytics">
+          <i class="lucide-bar-chart-3"></i>
+          <span>Analytics</span>
+        </a>
+
+        <div class="nav-section-label">INVESTIGATION</div>
+        <a href="#" class="nav-item" data-page="accounts">
+          <i class="lucide-users"></i>
+          <span>Accounts</span>
+        </a>
+        <a href="#" class="nav-item" data-page="predictions">
+          <i class="lucide-brain"></i>
+          <span>Predictions</span>
+        </a>
+        <a href="#" class="nav-item" data-page="alerts">
+          <i class="lucide-bell-ring"></i>
+          <span>Alerts</span>
+        </a>
+        <a href="#" class="nav-item" data-page="patterns">
+          <i class="lucide-search"></i>
+          <span>Patterns</span>
+        </a>
+        <a href="#" class="nav-item" data-page="graph">
+          <i class="lucide-git-branch"></i>
+          <span>Graph Explorer</span>
+        </a>
+        <a href="#" class="nav-item" data-page="timeline">
+          <i class="lucide-clock"></i>
+          <span>Timeline</span>
+        </a>
+
+        <div class="nav-section-label">SYSTEM</div>
+        <a href="#" class="nav-item" data-page="reports">
+          <i class="lucide-file-text"></i>
+          <span>Reports</span>
+        </a>
+        <a href="#" class="nav-item" data-page="model">
+          <i class="lucide-cpu"></i>
+          <span>Model Info</span>
+        </a>
+        <a href="#" class="nav-item" data-page="upload">
+          <i class="lucide-upload"></i>
+          <span>Upload Data</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="health-indicator" id="health-dot">
+          <span class="health-dot"></span>
+          <span id="health-text">Connecting…</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main ───────────────────────────────────────── -->
+    <main id="main">
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle">
+          <i class="lucide-menu"></i>
+        </button>
+        <h1 id="pageTitle">Dashboard</h1>
+        <div class="topbar-right">
+          <span class="topbar-clock" id="topbar-clock"></span>
+          <span class="topbar-badge" id="topbar-accounts">—</span>
+        </div>
+      </header>
+
+      <div class="page-container">
+        <!-- ════════════ DASHBOARD ════════════ -->
+        <section id="page-dashboard" class="page active">
+          <div class="kpi-row">
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-blue">
+                <i class="lucide-receipt"></i>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value" id="kpi-transactions">—</div>
+                <div class="kpi-label">Total Transactions</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-green">
+                <i class="lucide-indian-rupee"></i>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value" id="kpi-volume">—</div>
+                <div class="kpi-label">Total Volume</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-red">
+                <i class="lucide-alert-triangle"></i>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value" id="kpi-flagged">—</div>
+                <div class="kpi-label">Flagged Amount</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-orange">
+                <i class="lucide-shield-alert"></i>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value" id="kpi-highrisk">—</div>
+                <div class="kpi-label">High Risk Entities</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-purple">
+                <i class="lucide-siren"></i>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value" id="kpi-active-cases">—</div>
+                <div class="kpi-label">Active Cases</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-yellow">
+                <i class="lucide-gauge"></i>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value" id="kpi-risk-score">—</div>
+                <div class="kpi-label">System Risk Score</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-trending-up"></i> Transaction Trends</h3>
+              </div>
+              <div class="card-body chart-container">
+                <canvas id="dashTrendChart"></canvas>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3>
+                  <i class="lucide-activity"></i> Recent Suspicious Activity
+                </h3>
+              </div>
+              <div class="card-body" id="recent-activity">
+                <p class="muted">Loading…</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════ ANALYTICS ════════════ -->
+        <section id="page-analytics" class="page">
+          <div class="grid-3">
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-pie-chart"></i> Risk Distribution</h3>
+              </div>
+              <div class="card-body chart-container">
+                <canvas id="riskDistChart"></canvas>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-bar-chart"></i> Pattern Frequency</h3>
+              </div>
+              <div class="card-body chart-container">
+                <canvas id="patternFreqChart"></canvas>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-trending-up"></i> Transaction Trends</h3>
+              </div>
+              <div class="card-body chart-container">
+                <canvas id="analyticsTrendChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="grid-2 mt-1">
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-indian-rupee"></i> Volume Summary</h3>
+              </div>
+              <div class="card-body" id="analytics-volume-summary">
+                <p class="muted">Loading…</p>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-alert-triangle"></i> Flagged Breakdown</h3>
+              </div>
+              <div class="card-body" id="analytics-flagged-summary">
+                <p class="muted">Loading…</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════ ACCOUNTS ════════════ -->
+        <section id="page-accounts" class="page">
+          <div class="toolbar">
+            <div class="search-box">
+              <i class="lucide-search"></i>
+              <input
+                type="text"
+                id="acc-search"
+                placeholder="Search accounts…"
+              />
+            </div>
+            <select id="acc-status-filter" class="select">
+              <option value="">All Statuses</option>
+              <option value="Critical">Critical</option>
+              <option value="Flagged">Flagged</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Verified">Verified</option>
+            </select>
+            <button class="btn btn-primary" onclick="loadAccounts()">
+              <i class="lucide-refresh-cw"></i> Refresh
+            </button>
+          </div>
+          <div class="card">
+            <div class="card-body" id="accounts-table">
+              <p class="muted">
+                Click Refresh or navigate here to load accounts.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════ PREDICTIONS ════════════ -->
+        <section id="page-predictions" class="page">
+          <div class="grid-3">
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-brain"></i> Single Prediction</h3>
+              </div>
+              <div class="card-body">
+                <div class="input-group">
+                  <input
+                    type="text"
+                    id="predict-account-id"
+                    placeholder="Enter Account ID"
+                  />
+                  <button class="btn btn-primary" onclick="singlePredict()">
+                    Predict
+                  </button>
+                </div>
+                <div id="predict-result" class="result-box"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-layers"></i> Batch Prediction</h3>
+              </div>
+              <div class="card-body">
+                <div class="input-group">
+                  <input
+                    type="text"
+                    id="batch-account-ids"
+                    placeholder="ACC001, ACC002, ACC003…"
+                  />
+                  <button class="btn btn-primary" onclick="batchPredict()">
+                    Run Batch
+                  </button>
+                </div>
+                <div id="batch-result" class="result-box"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-radio"></i> Transaction Monitor</h3>
+              </div>
+              <div class="card-body">
+                <div class="form-grid">
+                  <input
+                    type="text"
+                    id="mon-sender"
+                    placeholder="Sender Account"
+                  />
+                  <input
+                    type="text"
+                    id="mon-receiver"
+                    placeholder="Receiver Account"
+                  />
+                  <input type="number" id="mon-amount" placeholder="Amount" />
+                  <input
+                    type="text"
+                    id="mon-type"
+                    placeholder="Type (e.g. wire_transfer)"
+                  />
+                </div>
+                <button
+                  class="btn btn-primary mt-1"
+                  onclick="monitorTransaction()"
+                  style="width: 100%"
+                >
+                  <i class="lucide-scan"></i> Monitor
+                </button>
+                <div id="monitor-result" class="result-box"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════ ALERTS ════════════ -->
+        <section id="page-alerts" class="page">
+          <div class="toolbar">
+            <label class="slider-label">
+              Min Risk: <strong id="alert-risk-val">50</strong>%
+              <input
+                type="range"
+                id="alert-min-risk"
+                min="0"
+                max="100"
+                value="50"
+                oninput="
+                  document.getElementById('alert-risk-val').textContent =
+                    this.value
+                "
+              />
+            </label>
+            <label class="slider-label">
+              Limit: <strong id="alert-limit-val">20</strong>
+              <input
+                type="range"
+                id="alert-limit"
+                min="1"
+                max="100"
+                value="20"
+                oninput="
+                  document.getElementById('alert-limit-val').textContent =
+                    this.value
+                "
+              />
+            </label>
+            <button class="btn btn-danger" onclick="loadAlerts()">
+              <i class="lucide-bell-ring"></i> Generate Alerts
+            </button>
+          </div>
+          <div class="card">
+            <div class="card-body" id="alerts-table">
+              <p class="muted">
+                Configure parameters and click Generate Alerts.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════ PATTERNS ════════════ -->
+        <section id="page-patterns" class="page">
+          <div class="toolbar">
+            <div class="btn-group">
+              <button
+                class="btn btn-primary active"
+                onclick="loadPatterns('all', this)"
+              >
+                All Patterns
+              </button>
+              <button
+                class="btn btn-outline"
+                onclick="loadPatterns('circular', this)"
+              >
+                Circular
+              </button>
+              <button
+                class="btn btn-outline"
+                onclick="loadPatterns('structuring', this)"
+              >
+                Structuring
+              </button>
+              <button
+                class="btn btn-outline"
+                onclick="loadPatterns('dormant', this)"
+              >
+                Dormant
+              </button>
+            </div>
+          </div>
+          <div id="patterns-content">
+            <div class="card" id="patterns-circular" style="display: none">
+              <div class="card-header">
+                <h3>
+                  <i class="lucide-refresh-cw"></i> Circular Transaction Cycles
+                </h3>
+              </div>
+              <div class="card-body" id="circular-table"></div>
+            </div>
+            <div class="card" id="patterns-structuring" style="display: none">
+              <div class="card-header">
+                <h3><i class="lucide-split"></i> Structuring / Smurfing</h3>
+              </div>
+              <div class="card-body" id="structuring-table"></div>
+            </div>
+            <div class="card" id="patterns-dormant" style="display: none">
+              <div class="card-header">
+                <h3><i class="lucide-moon"></i> Dormant Account Activations</h3>
+              </div>
+              <div class="card-body" id="dormant-table"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════ GRAPH EXPLORER ════════════ -->
+        <section id="page-graph" class="page">
+          <div class="toolbar graph-toolbar">
+            <div class="input-group">
+              <input
+                type="text"
+                id="graph-account-id"
+                placeholder="Account ID for subgraph…"
+              />
+              <button class="btn btn-primary" onclick="loadSubgraph()">
+                <i class="lucide-git-branch"></i> Subgraph
+              </button>
+            </div>
+            <button class="btn btn-outline" onclick="loadFullGraph()">
+              <i class="lucide-maximize-2"></i> Full Graph
+            </button>
+            <button class="btn btn-outline" onclick="loadGraphStats()">
+              <i class="lucide-bar-chart-2"></i> Stats
+            </button>
+          </div>
+          <!-- Graph filter bar -->
+          <div class="graph-filters">
+            <div class="filter-group">
+              <label class="filter-label">Max Nodes</label>
+              <select
+                id="graph-limit"
+                class="filter-select"
+                onchange="loadFullGraph()"
+              >
+                <option value="50">50</option>
+                <option value="100" selected>100</option>
+                <option value="200">200</option>
+                <option value="500">500</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Min Risk %</label>
+              <input
+                type="range"
+                id="graph-risk-filter"
+                min="0"
+                max="75"
+                value="0"
+                step="5"
+                class="filter-range"
+                oninput="applyGraphRiskFilter()"
+              />
+              <span id="graph-risk-val" class="filter-val">0%</span>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Edges</label>
+              <select
+                id="graph-edge-mode"
+                class="filter-select"
+                onchange="applyGraphEdgeFilter()"
+              >
+                <option value="all" selected>All Edges</option>
+                <option value="suspicious">Suspicious + Warning</option>
+                <option value="safe">Safe + Normal</option>
+                <option value="none">Hide Edges</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Layout</label>
+              <select
+                id="graph-layout"
+                class="filter-select"
+                onchange="reLayoutGraph()"
+              >
+                <option value="force">Force</option>
+                <option value="radial">Radial</option>
+                <option value="grid">Grid</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Annotations</label>
+              <select
+                id="graph-annotations"
+                class="filter-select"
+                onchange="toggleGraphAnnotations()"
+              >
+                <option value="off">Off</option>
+                <option value="edges">Edge Labels</option>
+                <option value="risk">Node Risk %</option>
+                <option value="all">All</option>
+              </select>
+            </div>
+            <span class="graph-node-count" id="graph-node-count"></span>
+          </div>
+          <div class="card graph-card">
+            <div class="card-body graph-body">
+              <svg id="graph-svg"></svg>
+              <div
+                id="graph-tooltip"
+                class="graph-tooltip"
+                style="display: none"
+              ></div>
+              <div id="graph-legend" class="graph-legend">
+                <span class="legend-section">Nodes:</span>
+                <span class="legend-item"
+                  ><span class="legend-dot" style="background: #00b894"></span>
+                  Low</span
+                >
+                <span class="legend-item"
+                  ><span class="legend-dot" style="background: #fdcb6e"></span>
+                  Medium</span
+                >
+                <span class="legend-item"
+                  ><span class="legend-dot" style="background: #e17055"></span>
+                  High</span
+                >
+                <span class="legend-item"
+                  ><span class="legend-dot" style="background: #d63031"></span>
+                  Critical</span
+                >
+                <span class="legend-divider"></span>
+                <span class="legend-section">Edges:</span>
+                <span class="legend-item"
+                  ><span class="legend-line" style="background: #10b981"></span>
+                  Safe</span
+                >
+                <span class="legend-item"
+                  ><span
+                    class="legend-line"
+                    style="background: rgba(255, 255, 255, 0.25)"
+                  ></span>
+                  Normal</span
+                >
+                <span class="legend-item"
+                  ><span class="legend-line" style="background: #fbbf24"></span>
+                  Warning</span
+                >
+                <span class="legend-item"
+                  ><span class="legend-line" style="background: #ef4444"></span>
+                  Suspicious</span
+                >
+              </div>
+              <div class="graph-controls">
+                <button
+                  class="graph-ctrl-btn"
+                  onclick="graphZoom(1.3)"
+                  title="Zoom In"
+                >
+                  <i class="lucide-zoom-in"></i>
+                </button>
+                <button
+                  class="graph-ctrl-btn"
+                  onclick="graphZoom(0.7)"
+                  title="Zoom Out"
+                >
+                  <i class="lucide-zoom-out"></i>
+                </button>
+                <button
+                  class="graph-ctrl-btn"
+                  onclick="graphResetView()"
+                  title="Reset View"
+                >
+                  <i class="lucide-maximize-2"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card mt-1" id="graph-stats-panel" style="display: none">
+            <div class="card-header">
+              <h3><i class="lucide-bar-chart-2"></i> Graph Statistics</h3>
+            </div>
+            <div class="card-body" id="graph-stats-content"></div>
+          </div>
+        </section>
+
+        <!-- ════════════ TIMELINE ════════════ -->
+        <section id="page-timeline" class="page">
+          <div class="toolbar">
+            <div class="input-group">
+              <input
+                type="text"
+                id="timeline-account-id"
+                placeholder="Account ID…"
+              />
+              <button class="btn btn-primary" onclick="loadTimeline()">
+                <i class="lucide-clock"></i> Load Timeline
+              </button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" id="timeline-content">
+              <p class="muted">
+                Enter an account ID to view its transaction timeline.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════ REPORTS ════════════ -->
+        <section id="page-reports" class="page">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-file-plus"></i> Generate SAR Report</h3>
+              </div>
+              <div class="card-body">
+                <div class="input-group">
+                  <input
+                    type="text"
+                    id="report-account-id"
+                    placeholder="Account ID…"
+                  />
+                  <button class="btn btn-primary" onclick="generateReport()">
+                    Generate
+                  </button>
+                </div>
+                <div id="report-result" class="result-box"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-bar-chart-2"></i> Report Stats</h3>
+              </div>
+              <div class="card-body" id="report-stats">
+                <p class="muted">Loading…</p>
+              </div>
+            </div>
+          </div>
+          <div class="card mt-1">
+            <div class="card-header">
+              <h3><i class="lucide-file-text"></i> Previous Reports</h3>
+            </div>
+            <div class="card-body" id="reports-list">
+              <p class="muted">Loading…</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════ MODEL INFO ════════════ -->
+        <section id="page-model" class="page">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-cpu"></i> Model Architecture</h3>
+              </div>
+              <div class="card-body" id="model-info">
+                <p class="muted">Loading…</p>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-activity"></i> System Metrics</h3>
+              </div>
+              <div class="card-body" id="system-metrics">
+                <p class="muted">Loading…</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════ UPLOAD ════════════ -->
+        <section id="page-upload" class="page">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-upload"></i> Upload Transaction Data</h3>
+              </div>
+              <div class="card-body">
+                <form id="upload-form">
+                  <label class="file-drop" id="upload-drop-zone">
+                    <i class="lucide-upload-cloud"></i>
+                    <span>Drop your CSV file here or click to browse</span>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      id="upload-file-input"
+                      hidden
+                    />
+                  </label>
+                  <div
+                    class="upload-progress"
+                    id="upload-progress"
+                    style="display: none"
+                  >
+                    <div class="progress-bar">
+                      <div
+                        class="progress-fill"
+                        id="upload-progress-fill"
+                      ></div>
+                    </div>
+                    <span id="upload-progress-text">Uploading…</span>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="lucide-database"></i> Current Dataset</h3>
+              </div>
+              <div class="card-body" id="upload-status">
+                <p class="muted">Loading…</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

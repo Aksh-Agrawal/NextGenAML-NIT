@@ -1,0 +1,20 @@
+<div class="toolbar">
+  <label class="slider-label">
+    Min Risk: <strong id="alert-risk-val">50</strong>%
+    <input type="range" id="alert-min-risk" min="0" max="100" value="50"
+      oninput="document.getElementById('alert-risk-val').textContent = this.value" />
+  </label>
+  <label class="slider-label">
+    Limit: <strong id="alert-limit-val">20</strong>
+    <input type="range" id="alert-limit" min="1" max="100" value="20"
+      oninput="document.getElementById('alert-limit-val').textContent = this.value" />
+  </label>
+  <button class="btn btn-danger" onclick="loadAlerts()">
+    <i class="lucide-bell-ring"></i> Generate Alerts
+  </button>
+</div>
+<div class="card">
+  <div class="card-body" id="alerts-table">
+    <p class="muted">Configure parameters and click Generate Alerts.</p>
+  </div>
+</div>

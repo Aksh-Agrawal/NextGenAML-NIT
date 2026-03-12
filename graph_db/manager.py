@@ -130,6 +130,40 @@ class GraphManager:
             }
             self._account_features[acc] = features
 
+    def _edge_suspicious_score(self, u: str, v: str, data: dict) -> float:
+        """Compute a 0-1 suspicious score for an edge blending multiple signals."""
+        # 1. Flag ratio from transactions (0-1)
+        txs = data.get("transactions", [])
+        if txs:
+            flag_ratio = sum(1 for t in txs if t.get("label", 0)) / len(txs)
+        else:
+            flag_ratio = 1.0 if data.get("is_suspicious") else 0.0
+
+        # 2. Average endpoint risk (0-1)
+        u_risk = self._account_features.get(u, {}).get("label_ratio", 0.0)
+        v_risk = self._account_features.get(v, {}).get("label_ratio", 0.0)
+        endpoint_risk = (u_risk + v_risk) / 2
+
+        # 3. Amount anomaly: how far is this edge's avg tx from the global mean?
+        global_avg = self._df["amount"].mean() if len(self._df) > 0 else 1.0
+        edge_avg = data.get("total_amount", 0) / max(data.get("tx_count", 1), 1)
+        # Sigmoid-like scale: ratio of 3x average → ~0.75, 10x → ~0.95
+        amount_ratio = edge_avg / max(global_avg, 1.0)
+        amount_signal = min(amount_ratio / (amount_ratio + 3.0), 1.0)
+
+        # 4. Velocity signal: many transactions in short time is suspicious
+        tx_count = data.get("tx_count", 1)
+        tx_signal = min(tx_count / 20.0, 1.0)  # 20+ txs between same pair → max
+
+        # Blend: flag_ratio dominates, but other signals fill gradient
+        score = (
+            flag_ratio * 0.40
+            + endpoint_risk * 0.30
+            + amount_signal * 0.15
+            + tx_signal * 0.15
+        )
+        return round(min(max(score, 0.0), 1.0), 3)
+
     # ── Queries ────────────────────────────────────────
     def get_all_accounts(self) -> list[str]:
         return list(self.G.nodes())
@@ -155,18 +189,37 @@ class GraphManager:
             })
         links = []
         for u, v, data in ego.edges(data=True):
+            score = self._edge_suspicious_score(u, v, data)
             links.append({
                 "source": u,
                 "target": v,
                 "value": data.get("total_amount", 0),
                 "is_suspicious": data.get("is_suspicious", False),
+                "suspicious_score": score,
+                "tx_count": data.get("tx_count", 1),
             })
         return {"nodes": nodes, "links": links, "center_account": account_id}
 
-    def get_full_graph(self) -> dict:
-        """Return the entire graph as nodes + links for visualization."""
+    def get_full_graph(self, limit: int = 500) -> dict:
+        """Return the graph as nodes + links for visualization.
+
+        When the graph has more nodes than *limit*, the highest-risk
+        accounts are returned so the browser stays responsive.
+        """
+        all_nodes = list(self.G.nodes())
+        if len(all_nodes) > limit:
+            # Sort by risk (label_ratio) descending, take top-N
+            scored = sorted(
+                all_nodes,
+                key=lambda n: self._account_features.get(n, {}).get("label_ratio", 0.0),
+                reverse=True,
+            )
+            selected = set(scored[:limit])
+        else:
+            selected = set(all_nodes)
+
         nodes = []
-        for n in self.G.nodes():
+        for n in selected:
             risk = self._account_features.get(n, {}).get("label_ratio", 0.0) * 100
             nd = self.G.nodes[n]
             nodes.append({
@@ -177,19 +230,38 @@ class GraphManager:
             })
         links = []
         for u, v, data in self.G.edges(data=True):
-            links.append({
-                "source": u,
-                "target": v,
-                "value": data.get("total_amount", 0),
-                "is_suspicious": data.get("is_suspicious", False),
-            })
-        return {"nodes": nodes, "links": links}
+            if u in selected and v in selected:
+                score = self._edge_suspicious_score(u, v, data)
+                links.append({
+                    "source": u,
+                    "target": v,
+                    "value": data.get("total_amount", 0),
+                    "is_suspicious": data.get("is_suspicious", False),
+                    "suspicious_score": score,
+                    "tx_count": data.get("tx_count", 1),
+                })
+        return {
+            "nodes": nodes,
+            "links": links,
+            "truncated": len(all_nodes) > limit,
+            "total_in_graph": len(all_nodes),
+        }
 
-    def detect_circular_patterns(self, min_length: int = 3, max_length: int = 6) -> list[dict]:
-        """Find circular transaction flows (A→B→C→…→A)."""
+    def detect_circular_patterns(self, min_length: int = 3, max_length: int = 6, limit: int = 50) -> list[dict]:
+        """Find circular transaction flows (A→B→C→…→A).
+
+        *limit* caps the number of cycles returned to avoid exhaustive
+        enumeration on dense graphs.
+        """
         cycles = []
+        checked = 0
+        max_checked = 200_000  # stop iterating after this many raw cycles
         try:
-            for cycle in nx.simple_cycles(self.G):
+            for cycle in nx.simple_cycles(self.G, length_bound=max_length):
+                checked += 1
+                if checked > max_checked:
+                    logger.info(f"Cycle scan capped at {max_checked} iterations, found {len(cycles)} qualifying cycles")
+                    break
                 if min_length <= len(cycle) <= max_length:
                     total_flow = 0
                     for i in range(len(cycle)):
@@ -202,6 +274,8 @@ class GraphManager:
                         "total_flow": total_flow,
                         "cycle_length": len(cycle),
                     })
+                    if len(cycles) >= limit:
+                        break
         except Exception as e:
             logger.warning(f"Cycle detection error: {e}")
         return cycles

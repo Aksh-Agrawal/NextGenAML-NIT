@@ -1,0 +1,21 @@
+<div class="toolbar">
+  <div class="search-box">
+    <i class="lucide-search"></i>
+    <input type="text" id="acc-search" placeholder="Search accounts…" />
+  </div>
+  <select id="acc-status-filter" class="select">
+    <option value="">All Statuses</option>
+    <option value="Critical">Critical</option>
+    <option value="Flagged">Flagged</option>
+    <option value="Under Review">Under Review</option>
+    <option value="Verified">Verified</option>
+  </select>
+  <button class="btn btn-primary" onclick="loadAccounts()">
+    <i class="lucide-refresh-cw"></i> Refresh
+  </button>
+</div>
+<div class="card">
+  <div class="card-body" id="accounts-table">
+    <p class="muted">Click Refresh or navigate here to load accounts.</p>
+  </div>
+</div>

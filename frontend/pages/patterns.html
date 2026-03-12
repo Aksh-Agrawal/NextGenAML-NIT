@@ -1,0 +1,28 @@
+<div class="toolbar">
+  <div class="btn-group">
+    <button class="btn btn-primary active" onclick="loadPatterns('all', this)">All Patterns</button>
+    <button class="btn btn-outline" onclick="loadPatterns('circular', this)">Circular</button>
+    <button class="btn btn-outline" onclick="loadPatterns('structuring', this)">Structuring</button>
+    <button class="btn btn-outline" onclick="loadPatterns('dormant', this)">Dormant</button>
+  </div>
+</div>
+<div id="patterns-content">
+  <div class="card" id="patterns-circular" style="display:none">
+    <div class="card-header">
+      <h3><i class="lucide-refresh-cw"></i> Circular Transaction Cycles</h3>
+    </div>
+    <div class="card-body" id="circular-table"></div>
+  </div>
+  <div class="card" id="patterns-structuring" style="display:none">
+    <div class="card-header">
+      <h3><i class="lucide-split"></i> Structuring / Smurfing</h3>
+    </div>
+    <div class="card-body" id="structuring-table"></div>
+  </div>
+  <div class="card" id="patterns-dormant" style="display:none">
+    <div class="card-header">
+      <h3><i class="lucide-moon"></i> Dormant Account Activations</h3>
+    </div>
+    <div class="card-body" id="dormant-table"></div>
+  </div>
+</div>
