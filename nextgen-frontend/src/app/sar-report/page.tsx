@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, Download, Copy, FileText, CheckCircle, Eye, EyeOff } from 'lucide-react'
@@ -71,7 +71,7 @@ ${report.report_text}
 </FIUINDReport>`
 }
 
-export default function SARReportPage() {
+function SARReportForm() {
   const searchParams = useSearchParams()
   const prefilledId = searchParams.get('accountId') ?? ''
 
@@ -434,5 +434,13 @@ export default function SARReportPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SARReportPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SARReportForm />
+    </Suspense>
   )
 }

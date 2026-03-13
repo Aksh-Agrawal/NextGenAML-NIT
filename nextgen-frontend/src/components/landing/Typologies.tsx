@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import { TYPOLOGIES } from '@/lib/landing-data'
 
 // SVG icons for each typology
@@ -66,9 +66,9 @@ const KYCIcon = ({ color }: { color: string }) => (
 
 const ICONS = [LayeringIcon, CircularIcon, StructuringIcon, DormantIcon, KYCIcon]
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
 }
 
 const stagger = {
