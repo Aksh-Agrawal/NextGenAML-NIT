@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,8 +13,8 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
-  Cpu,
-  Circle,
+  // Cpu,
+  // Circle,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
