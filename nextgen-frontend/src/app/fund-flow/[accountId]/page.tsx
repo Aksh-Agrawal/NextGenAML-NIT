@@ -1,13 +1,14 @@
-'use client'
-
-import { use } from 'react'
 import { FundFlowGraph } from '@/components/FundFlowGraph'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-export default function FundFlowAccountPage({ params }: { params: Promise<{ accountId: string }> }) {
-  const { accountId } = use(params)
-  const decodedId = decodeURIComponent(accountId)
+export function generateStaticParams() {
+  return [{ accountId: 'demo-account' }]
+}
+
+export default async function FundFlowAccountPage({ params }: { params: Promise<{ accountId: string }> }) {
+  const resolvedParams = await params;
+  const decodedId = decodeURIComponent(resolvedParams.accountId)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
