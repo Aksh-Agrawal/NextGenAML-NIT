@@ -44,6 +44,8 @@ class Settings:
         "http://localhost:3001",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
+        "https://nextgenaml.onrender.com",
+        "https://nextgenaml-1.onrender.com"
     ]
 
 
