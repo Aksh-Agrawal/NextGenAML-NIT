@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   GitFork,
@@ -15,40 +15,44 @@ import {
   ChevronRight,
   Cpu,
   Circle,
-} from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/fund-flow', label: 'Fund Flow', icon: GitFork },
-  { href: '/alerts', label: 'Alerts', icon: Bell },
-  { href: '/patterns', label: 'Patterns', icon: Search },
-  { href: '/sar-report', label: 'SAR Report', icon: FileText },
-  { href: '/monitor', label: 'Monitor', icon: Activity },
-]
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/fund-flow", label: "Fund Flow", icon: GitFork },
+  { href: "/alerts", label: "Alerts", icon: Bell },
+  { href: "/patterns", label: "Patterns", icon: Search },
+  { href: "/sar-report", label: "SAR Report", icon: FileText },
+  { href: "/monitor", label: "Monitor", icon: Activity },
+];
 
 export function SidebarNav() {
-  const [collapsed, setCollapsed] = useState(false)
-  const pathname = usePathname()
+  const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
 
   const { data: health } = useQuery({
-    queryKey: ['health'],
+    queryKey: ["health"],
     queryFn: api.health,
     refetchInterval: 30_000,
-  })
+  });
 
-  const modelLoaded = health?.model_loaded ?? false
+  const modelLoaded = health?.model_loaded ?? false;
 
   return (
     <motion.aside
       animate={{ width: collapsed ? 64 : 240 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className="sidebar flex-shrink-0 flex flex-col h-full relative z-20"
-      style={{ overflow: 'hidden' }}
+      style={{ overflow: "hidden" }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b" style={{ borderColor: 'var(--border)' }}>
+      <Link
+        href="/"
+        className="flex items-center gap-3 px-4 py-5 border-b"
+        style={{ borderColor: "var(--border)", textDecoration: "none" }}
+      >
         <NeuralShieldIcon />
         <AnimatePresence>
           {!collapsed && (
@@ -59,35 +63,51 @@ export function SidebarNav() {
               transition={{ duration: 0.2 }}
               className="sidebar-logo-text min-w-0"
             >
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-                NextGen<span style={{ color: 'var(--accent-purple)' }}>AML</span>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: "var(--text-primary)",
+                  letterSpacing: "-0.3px",
+                }}
+              >
+                NextGen
+                <span style={{ color: "var(--accent-purple)" }}>AML</span>
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '1px', textTransform: 'uppercase' }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "var(--text-muted)",
+                  letterSpacing: "1px",
+                  textTransform: "uppercase",
+                }}
+              >
                 Union Bank of India
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </Link>
 
       {/* Nav Items */}
       <nav className="flex-1 p-3 space-y-1 overflow-hidden">
         {NAV_ITEMS.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+          const Icon = item.icon;
+          const isActive =
+            pathname === item.href || pathname?.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`nav-item ${isActive ? 'active' : ''}`}
+              className={`nav-item ${isActive ? "active" : ""}`}
               title={collapsed ? item.label : undefined}
             >
               <Icon
                 size={collapsed ? 22 : 18}
                 style={{
                   flexShrink: 0,
-                  color: isActive ? 'var(--accent-blue)' : undefined,
-                  transition: 'all 0.2s ease',
+                  color: isActive ? "var(--accent-blue)" : undefined,
+                  transition: "all 0.2s ease",
                 }}
               />
               <AnimatePresence>
@@ -97,30 +117,43 @@ export function SidebarNav() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
-                    style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}
+                    style={{ overflow: "hidden", whiteSpace: "nowrap" }}
                   >
                     {item.label}
                   </motion.span>
                 )}
               </AnimatePresence>
             </Link>
-          )
+          );
         })}
       </nav>
 
       {/* Bottom Status */}
-      <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
+      <div className="p-3 border-t" style={{ borderColor: "var(--border)" }}>
         <div
           className="flex items-center gap-2 px-2 py-2 rounded-lg"
-          style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)' }}
-          title={collapsed ? (modelLoaded ? 'Model Ready' : 'Model Loading') : undefined}
+          style={{
+            background: "var(--bg-overlay)",
+            border: "1px solid var(--border)",
+          }}
+          title={
+            collapsed
+              ? modelLoaded
+                ? "Model Ready"
+                : "Model Loading"
+              : undefined
+          }
         >
           <div
             className="status-dot"
             style={{
-              background: modelLoaded ? 'var(--accent-green)' : 'var(--accent-amber)',
-              boxShadow: modelLoaded ? '0 0 6px var(--accent-green)' : '0 0 6px var(--accent-amber)',
-              animation: 'dot-blink 2s ease-in-out infinite',
+              background: modelLoaded
+                ? "var(--accent-green)"
+                : "var(--accent-amber)",
+              boxShadow: modelLoaded
+                ? "0 0 6px var(--accent-green)"
+                : "0 0 6px var(--accent-amber)",
+              animation: "dot-blink 2s ease-in-out infinite",
               flexShrink: 0,
             }}
           />
@@ -132,10 +165,23 @@ export function SidebarNav() {
                 exit={{ opacity: 0 }}
                 className="min-w-0"
               >
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                  {modelLoaded ? 'GNN Model Ready' : 'Loading Model...'}
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "var(--text-secondary)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {modelLoaded ? "GNN Model Ready" : "Loading Model..."}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "var(--text-muted)",
+                    fontFamily: "JetBrains Mono, monospace",
+                  }}
+                >
                   v1.0 · GraphSAGE
                 </div>
               </motion.div>
@@ -149,29 +195,36 @@ export function SidebarNav() {
         onClick={() => setCollapsed(!collapsed)}
         className="btn-icon"
         style={{
-          position: 'absolute',
+          position: "absolute",
           right: -12,
-          top: '50%',
-          transform: 'translateY(-50%)',
-          borderRadius: '50%',
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--border-hover)',
+          top: "50%",
+          transform: "translateY(-50%)",
+          borderRadius: "50%",
+          background: "var(--bg-elevated)",
+          border: "1px solid var(--border-hover)",
           zIndex: 10,
           width: 24,
           height: 24,
           padding: 0,
         }}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
       </button>
     </motion.aside>
-  )
+  );
 }
 
 function NeuralShieldIcon() {
   return (
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ flexShrink: 0 }}
+    >
       <defs>
         <linearGradient id="shieldGrad" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#A78BFA" />
@@ -197,12 +250,60 @@ function NeuralShieldIcon() {
       <circle cx="11" cy="21" r="1.8" fill="url(#nodeGrad)" />
       <circle cx="21" cy="21" r="1.8" fill="url(#nodeGrad)" />
       {/* Edges */}
-      <line x1="16" y1="16" x2="10" y2="12" stroke="url(#shieldGrad)" strokeWidth="0.8" strokeOpacity="0.7" />
-      <line x1="16" y1="16" x2="22" y2="12" stroke="url(#shieldGrad)" strokeWidth="0.8" strokeOpacity="0.7" />
-      <line x1="16" y1="16" x2="11" y2="21" stroke="url(#shieldGrad)" strokeWidth="0.8" strokeOpacity="0.7" />
-      <line x1="16" y1="16" x2="21" y2="21" stroke="url(#shieldGrad)" strokeWidth="0.8" strokeOpacity="0.7" />
-      <line x1="10" y1="12" x2="11" y2="21" stroke="url(#shieldGrad)" strokeWidth="0.6" strokeOpacity="0.4" />
-      <line x1="22" y1="12" x2="21" y2="21" stroke="url(#shieldGrad)" strokeWidth="0.6" strokeOpacity="0.4" />
+      <line
+        x1="16"
+        y1="16"
+        x2="10"
+        y2="12"
+        stroke="url(#shieldGrad)"
+        strokeWidth="0.8"
+        strokeOpacity="0.7"
+      />
+      <line
+        x1="16"
+        y1="16"
+        x2="22"
+        y2="12"
+        stroke="url(#shieldGrad)"
+        strokeWidth="0.8"
+        strokeOpacity="0.7"
+      />
+      <line
+        x1="16"
+        y1="16"
+        x2="11"
+        y2="21"
+        stroke="url(#shieldGrad)"
+        strokeWidth="0.8"
+        strokeOpacity="0.7"
+      />
+      <line
+        x1="16"
+        y1="16"
+        x2="21"
+        y2="21"
+        stroke="url(#shieldGrad)"
+        strokeWidth="0.8"
+        strokeOpacity="0.7"
+      />
+      <line
+        x1="10"
+        y1="12"
+        x2="11"
+        y2="21"
+        stroke="url(#shieldGrad)"
+        strokeWidth="0.6"
+        strokeOpacity="0.4"
+      />
+      <line
+        x1="22"
+        y1="12"
+        x2="21"
+        y2="21"
+        stroke="url(#shieldGrad)"
+        strokeWidth="0.6"
+        strokeOpacity="0.4"
+      />
     </svg>
-  )
+  );
 }

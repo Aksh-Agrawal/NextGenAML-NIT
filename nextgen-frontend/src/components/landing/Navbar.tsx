@@ -1,12 +1,25 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { NAV_LINKS } from '@/lib/landing-data'
+import { useState, useEffect } from "react";
+import { NAV_LINKS } from "@/lib/landing-data";
 
 const ShieldLogo = () => (
-  <svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg
+    width="32"
+    height="32"
+    viewBox="0 0 48 48"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
     <defs>
-      <linearGradient id="logoGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <linearGradient
+        id="logoGrad"
+        x1="0"
+        y1="0"
+        x2="48"
+        y2="48"
+        gradientUnits="userSpaceOnUse"
+      >
         <stop offset="0%" stopColor="#A78BFA" />
         <stop offset="100%" stopColor="#4D8EFF" />
       </linearGradient>
@@ -26,55 +39,111 @@ const ShieldLogo = () => (
     <circle cx="20" cy="30" r="2" fill="url(#logoGrad)" />
     <circle cx="28" cy="30" r="2" fill="url(#logoGrad)" />
     {/* Connecting edges */}
-    <line x1="24" y1="14" x2="16" y2="22" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.7" />
-    <line x1="24" y1="14" x2="32" y2="22" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.7" />
-    <line x1="16" y1="22" x2="20" y2="30" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.7" />
-    <line x1="32" y1="22" x2="28" y2="30" stroke="url(#logoGrad)" strokeWidth="1" strokeOpacity="0.7" />
-    <line x1="16" y1="22" x2="32" y2="22" stroke="url(#logoGrad)" strokeWidth="0.75" strokeOpacity="0.4" />
-    <line x1="20" y1="30" x2="28" y2="30" stroke="url(#logoGrad)" strokeWidth="0.75" strokeOpacity="0.4" />
+    <line
+      x1="24"
+      y1="14"
+      x2="16"
+      y2="22"
+      stroke="url(#logoGrad)"
+      strokeWidth="1"
+      strokeOpacity="0.7"
+    />
+    <line
+      x1="24"
+      y1="14"
+      x2="32"
+      y2="22"
+      stroke="url(#logoGrad)"
+      strokeWidth="1"
+      strokeOpacity="0.7"
+    />
+    <line
+      x1="16"
+      y1="22"
+      x2="20"
+      y2="30"
+      stroke="url(#logoGrad)"
+      strokeWidth="1"
+      strokeOpacity="0.7"
+    />
+    <line
+      x1="32"
+      y1="22"
+      x2="28"
+      y2="30"
+      stroke="url(#logoGrad)"
+      strokeWidth="1"
+      strokeOpacity="0.7"
+    />
+    <line
+      x1="16"
+      y1="22"
+      x2="32"
+      y2="22"
+      stroke="url(#logoGrad)"
+      strokeWidth="0.75"
+      strokeOpacity="0.4"
+    />
+    <line
+      x1="20"
+      y1="30"
+      x2="28"
+      y2="30"
+      stroke="url(#logoGrad)"
+      strokeWidth="0.75"
+      strokeOpacity="0.4"
+    />
   </svg>
-)
+);
 
 export function Navbar() {
-  const [scrolled, setScrolled] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <>
       <nav
         style={{
-          position: 'sticky',
+          position: "sticky",
           top: 0,
           zIndex: 50,
-          height: '60px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 32px',
-          background: 'rgba(6,7,11,0.85)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: scrolled ? '0 1px 0 rgba(255,255,255,0.06)' : 'none',
-          transition: 'box-shadow 0.3s ease',
+          height: "60px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 32px",
+          background: "rgba(6,7,11,0.85)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          boxShadow: scrolled ? "0 1px 0 rgba(255,255,255,0.06)" : "none",
+          transition: "box-shadow 0.3s ease",
         }}
       >
         {/* Logo */}
-        <a href="#" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+        <a
+          href="#"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            textDecoration: "none",
+          }}
+        >
           <ShieldLogo />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
             <span
               style={{
-                fontSize: '16px',
+                fontSize: "16px",
                 fontWeight: 600,
-                color: '#EDF0F7',
-                letterSpacing: '-0.3px',
+                color: "#EDF0F7",
+                letterSpacing: "-0.3px",
                 lineHeight: 1,
               }}
             >
@@ -82,10 +151,10 @@ export function Navbar() {
             </span>
             <span
               style={{
-                fontSize: '10px',
-                color: '#4A5068',
+                fontSize: "10px",
+                color: "#4A5068",
                 fontFamily: "'JetBrains Mono', monospace",
-                letterSpacing: '0.2px',
+                letterSpacing: "0.2px",
                 lineHeight: 1,
               }}
             >
@@ -95,20 +164,23 @@ export function Navbar() {
         </a>
 
         {/* Desktop nav */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }} className="desktop-nav">
+        <div
+          style={{ display: "flex", alignItems: "center", gap: "32px" }}
+          className="desktop-nav"
+        >
           {NAV_LINKS.map((link) => (
             <a
               key={link.label}
               href={link.href}
               style={{
-                fontSize: '13px',
-                color: '#9299AD',
-                textDecoration: 'none',
-                transition: 'color 0.2s ease',
-                position: 'relative',
+                fontSize: "13px",
+                color: "#9299AD",
+                textDecoration: "none",
+                transition: "color 0.2s ease",
+                position: "relative",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#EDF0F7')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#9299AD')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#EDF0F7")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#9299AD")}
             >
               {link.label}
             </a>
@@ -117,22 +189,22 @@ export function Navbar() {
           <a
             href="/dashboard"
             style={{
-              fontSize: '13px',
-              color: '#4D8EFF',
-              border: '1px solid rgba(77,142,255,0.4)',
-              borderRadius: '6px',
-              padding: '6px 16px',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-              background: 'transparent',
+              fontSize: "13px",
+              color: "#4D8EFF",
+              border: "1px solid rgba(77,142,255,0.4)",
+              borderRadius: "6px",
+              padding: "6px 16px",
+              textDecoration: "none",
+              transition: "all 0.2s ease",
+              background: "transparent",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(77,142,255,0.12)'
-              e.currentTarget.style.borderColor = 'rgba(77,142,255,0.6)'
+              e.currentTarget.style.background = "rgba(77,142,255,0.12)";
+              e.currentTarget.style.borderColor = "rgba(77,142,255,0.6)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.borderColor = 'rgba(77,142,255,0.4)'
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.borderColor = "rgba(77,142,255,0.4)";
             }}
           >
             View Demo
@@ -144,12 +216,12 @@ export function Navbar() {
           className="hamburger-btn"
           onClick={() => setMobileOpen(!mobileOpen)}
           style={{
-            display: 'none',
-            background: 'none',
-            border: 'none',
-            color: '#EDF0F7',
-            cursor: 'pointer',
-            padding: '8px',
+            display: "none",
+            background: "none",
+            border: "none",
+            color: "#EDF0F7",
+            cursor: "pointer",
+            padding: "8px",
           }}
           aria-label="Toggle menu"
         >
@@ -175,18 +247,18 @@ export function Navbar() {
       {mobileOpen && (
         <div
           style={{
-            position: 'fixed',
-            top: '60px',
+            position: "fixed",
+            top: "60px",
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(6,7,11,0.98)',
-            backdropFilter: 'blur(16px)',
+            background: "rgba(6,7,11,0.98)",
+            backdropFilter: "blur(16px)",
             zIndex: 49,
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '32px',
-            gap: '24px',
+            display: "flex",
+            flexDirection: "column",
+            padding: "32px",
+            gap: "24px",
           }}
         >
           {NAV_LINKS.map((link) => (
@@ -195,29 +267,29 @@ export function Navbar() {
               href={link.href}
               onClick={() => setMobileOpen(false)}
               style={{
-                fontSize: '20px',
-                color: '#EDF0F7',
-                textDecoration: 'none',
+                fontSize: "20px",
+                color: "#EDF0F7",
+                textDecoration: "none",
                 fontWeight: 500,
-                padding: '12px 0',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                padding: "12px 0",
+                borderBottom: "1px solid rgba(255,255,255,0.06)",
               }}
             >
               {link.label}
             </a>
           ))}
           <a
-            href="#demo"
+            href="/dashboard"
             onClick={() => setMobileOpen(false)}
             style={{
-              fontSize: '16px',
-              color: '#4D8EFF',
-              border: '1px solid rgba(77,142,255,0.4)',
-              borderRadius: '8px',
-              padding: '12px 20px',
-              textDecoration: 'none',
-              textAlign: 'center',
-              marginTop: '8px',
+              fontSize: "16px",
+              color: "#4D8EFF",
+              border: "1px solid rgba(77,142,255,0.4)",
+              borderRadius: "8px",
+              padding: "12px 20px",
+              textDecoration: "none",
+              textAlign: "center",
+              marginTop: "8px",
             }}
           >
             View Demo
@@ -236,5 +308,5 @@ export function Navbar() {
         }
       `}</style>
     </>
-  )
+  );
 }
