@@ -76,12 +76,14 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
-
+origins = [
+    "https://nextgenaml-1.onrender.com",
+]
 # ── CORS ──────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
