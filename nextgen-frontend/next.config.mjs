@@ -2,15 +2,15 @@
 const nextConfig = {
   // Allow cross-origin from local API
   async rewrites() {
-    return []
+    return [];
   },
   // Suppress build errors from recharts/d3 server-side
   experimental: {
-    optimizePackageImports: ['recharts', 'lucide-react', 'framer-motion'],
+    optimizePackageImports: ["recharts", "lucide-react", "framer-motion"],
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;
