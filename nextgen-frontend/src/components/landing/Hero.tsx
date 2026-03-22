@@ -102,7 +102,7 @@ function HeroGraph() {
     ];
 
     function drawDotGrid() {
-      ctx!.fillStyle = "rgba(255,255,255,0.025)";
+      ctx!.fillStyle = "rgba(0,87,156,0.08)";
       for (let x = 15; x < W; x += 30) {
         for (let y = 15; y < H; y += 30) {
           ctx!.beginPath();
@@ -139,8 +139,8 @@ function HeroGraph() {
       const y = na.y + (nb.y - na.y) * progress;
       ctx!.beginPath();
       ctx!.arc(x, y, 3.5, 0, Math.PI * 2);
-      ctx!.fillStyle = "#FF3D57";
-      ctx!.shadowColor = "#FF3D57";
+      ctx!.fillStyle = "#DA251C";
+      ctx!.shadowColor = "#DA251C";
       ctx!.shadowBlur = 12;
       ctx!.fill();
       ctx!.shadowBlur = 0;
@@ -176,12 +176,12 @@ function HeroGraph() {
 
       // Red edges
       for (const [a, b] of RED_EDGES) {
-        drawEdge(a, b, "#FF3D57", 0.8, 1.5);
+        drawEdge(a, b, "#DA251C", 0.8, 1.5);
         // Glow pass
         ctx!.beginPath();
         ctx!.moveTo(nodes[a].x, nodes[a].y);
         ctx!.lineTo(nodes[b].x, nodes[b].y);
-        ctx!.strokeStyle = "#FF3D57";
+        ctx!.strokeStyle = "#DA251C";
         ctx!.globalAlpha = 0.15;
         ctx!.lineWidth = 6;
         ctx!.stroke();
@@ -210,7 +210,7 @@ function HeroGraph() {
           const ringR = n.r + 4 + pulse * 8;
           ctx!.beginPath();
           ctx!.arc(n.x, n.y, ringR, 0, Math.PI * 2);
-          ctx!.strokeStyle = "#FF3D57";
+          ctx!.strokeStyle = "#DA251C";
           ctx!.globalAlpha = (1 - pulse) * 0.6;
           ctx!.lineWidth = 1.5;
           ctx!.stroke();
@@ -222,13 +222,13 @@ function HeroGraph() {
         ctx!.arc(n.x, n.y, n.r, 0, Math.PI * 2);
         if (isFlagged) {
           const grad = ctx!.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
-          grad.addColorStop(0, "rgba(255,61,87,0.9)");
-          grad.addColorStop(1, "rgba(255,61,87,0.4)");
+          grad.addColorStop(0, "rgba(218,37,28,0.9)");
+          grad.addColorStop(1, "rgba(218,37,28,0.4)");
           ctx!.fillStyle = grad;
-          ctx!.shadowColor = "#FF3D57";
+          ctx!.shadowColor = "#DA251C";
           ctx!.shadowBlur = 12;
         } else {
-          ctx!.fillStyle = "#161922";
+          ctx!.fillStyle = "#F8FAFC";
           ctx!.shadowBlur = 0;
         }
         ctx!.fill();
@@ -238,8 +238,8 @@ function HeroGraph() {
         ctx!.beginPath();
         ctx!.arc(n.x, n.y, n.r, 0, Math.PI * 2);
         ctx!.strokeStyle = isFlagged
-          ? "rgba(255,61,87,0.8)"
-          : "rgba(167,139,250,0.3)";
+          ? "rgba(218,37,28,0.8)"
+          : "rgba(0,63,122,0.3)";
         ctx!.lineWidth = isFlagged ? 1.5 : 1;
         ctx!.stroke();
       });
@@ -309,7 +309,7 @@ export function Hero() {
             width: "600px",
             height: "500px",
             background:
-              "radial-gradient(ellipse at center, rgba(167,139,250,0.06) 0%, transparent 65%)",
+              "radial-gradient(ellipse at center, rgba(0,63,122,0.06) 0%, transparent 65%)",
             animation: "floatGlow 8s ease-in-out infinite",
           }}
         />
@@ -321,7 +321,7 @@ export function Hero() {
             width: "500px",
             height: "400px",
             background:
-              "radial-gradient(ellipse at center, rgba(77,142,255,0.05) 0%, transparent 55%)",
+              "radial-gradient(ellipse at center, rgba(0,87,156,0.05) 0%, transparent 55%)",
             animation: "floatGlow 10s ease-in-out infinite reverse",
           }}
         />
@@ -355,12 +355,12 @@ export function Hero() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "8px",
-                background: "rgba(255,61,87,0.12)",
-                border: "1px solid rgba(255,61,87,0.3)",
+                background: "rgba(218,37,28,0.12)",
+                border: "1px solid rgba(218,37,28,0.3)",
                 borderRadius: "999px",
                 padding: "5px 14px",
                 fontSize: "11px",
-                color: "#FF3D57",
+                color: "#DA251C",
                 fontFamily: "'JetBrains Mono', monospace",
                 letterSpacing: "0.3px",
               }}
@@ -370,7 +370,7 @@ export function Hero() {
                   width: "7px",
                   height: "7px",
                   borderRadius: "50%",
-                  background: "#FF3D57",
+                  background: "#DA251C",
                   animation: "ringPulse 2s ease-in-out infinite",
                   flexShrink: 0,
                 }}
@@ -391,7 +391,7 @@ export function Hero() {
               lineHeight: 1.05,
               letterSpacing: "-1.5px",
               background:
-                "linear-gradient(135deg, #EDF0F7 0%, #A78BFA 55%, #4D8EFF 100%)",
+                "linear-gradient(135deg, #333333 0%, #003F7A 55%, #00579C 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
@@ -430,9 +430,9 @@ export function Hero() {
             style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}
           >
             {[
-              { value: "93%", label: "Precision", color: "#FF3D57" },
-              { value: "12ms", label: "Inference", color: "#4D8EFF" },
-              { value: "5", label: "AML Typologies", color: "#A78BFA" },
+              { value: "93%", label: "Precision", color: "#DA251C" },
+              { value: "12ms", label: "Inference", color: "#00579C" },
+              { value: "5", label: "AML Typologies", color: "#003F7A" },
             ].map((s) => (
               <div
                 key={s.label}
@@ -440,13 +440,13 @@ export function Hero() {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "7px",
-                  background: "#161922",
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "#F8FAFC",
+                  border: "1px solid #CCCCCC",
                   borderRadius: "999px",
                   padding: "5px 14px",
                   fontSize: "12px",
                   fontFamily: "'JetBrains Mono', monospace",
-                  color: "#EDF0F7",
+                  color: "#333333",
                   whiteSpace: "nowrap",
                 }}
               >
@@ -487,14 +487,14 @@ export function Hero() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "8px",
-                background: "#4D8EFF",
+                background: "#00579C",
                 color: "white",
                 borderRadius: "10px",
                 padding: "13px 26px",
                 fontSize: "15px",
                 fontWeight: 600,
                 textDecoration: "none",
-                boxShadow: "0 0 24px rgba(77,142,255,0.3)",
+                boxShadow: "0 0 24px rgba(0,87,156,0.3)",
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
@@ -525,7 +525,7 @@ export function Hero() {
                 gap: "8px",
                 background: "transparent",
                 color: "#9299AD",
-                border: "1px solid rgba(255,255,255,0.12)",
+                border: "1px solid #CCCCCC",
                 borderRadius: "10px",
                 padding: "13px 26px",
                 fontSize: "15px",
@@ -534,8 +534,8 @@ export function Hero() {
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#161922";
-                e.currentTarget.style.color = "#EDF0F7";
+                e.currentTarget.style.background = "#F8FAFC";
+                e.currentTarget.style.color = "#333333";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "transparent";
@@ -558,11 +558,11 @@ export function Hero() {
             style={{
               position: "relative",
               background: "#0F1117",
-              border: "1px solid rgba(255,255,255,0.06)",
+              border: "1px solid #CCCCCC",
               borderRadius: "20px",
               overflow: "hidden",
               boxShadow:
-                "inset 0 0 60px rgba(167,139,250,0.04), 0 0 80px rgba(77,142,255,0.06)",
+                "inset 0 0 60px rgba(0,63,122,0.04), 0 0 80px rgba(0,87,156,0.06)",
               aspectRatio: "480/420",
             }}
           >
@@ -574,12 +574,12 @@ export function Hero() {
                 position: "absolute",
                 top: "12px",
                 left: "12px",
-                background: "rgba(167,139,250,0.12)",
-                border: "1px solid rgba(167,139,250,0.25)",
+                background: "rgba(0,63,122,0.12)",
+                border: "1px solid rgba(0,63,122,0.25)",
                 borderRadius: "6px",
                 padding: "4px 10px",
                 fontSize: "10px",
-                color: "#A78BFA",
+                color: "#003F7A",
                 fontFamily: "'JetBrains Mono', monospace",
               }}
             >
@@ -593,12 +593,12 @@ export function Hero() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "6px",
-                background: "rgba(255,61,87,0.12)",
-                border: "1px solid rgba(255,61,87,0.25)",
+                background: "rgba(218,37,28,0.12)",
+                border: "1px solid rgba(218,37,28,0.25)",
                 borderRadius: "6px",
                 padding: "4px 10px",
                 fontSize: "10px",
-                color: "#FF3D57",
+                color: "#DA251C",
                 fontFamily: "'JetBrains Mono', monospace",
               }}
             >
@@ -607,7 +607,7 @@ export function Hero() {
                   width: "6px",
                   height: "6px",
                   borderRadius: "50%",
-                  background: "#FF3D57",
+                  background: "#DA251C",
                   animation: "dotBlink 1.5s ease-in-out infinite",
                 }}
               />

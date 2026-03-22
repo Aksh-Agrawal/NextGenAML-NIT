@@ -6,8 +6,8 @@ const ShieldLogo = () => (
   <svg width="24" height="24" viewBox="0 0 48 48" fill="none">
     <defs>
       <linearGradient id="footerGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#A78BFA" />
-        <stop offset="100%" stopColor="#4D8EFF" />
+        <stop offset="0%" stopColor="#003F7A" />
+        <stop offset="100%" stopColor="#00579C" />
       </linearGradient>
     </defs>
     <path
@@ -33,8 +33,8 @@ export function Footer() {
   return (
     <footer
       style={{
-        background: '#06070B',
-        borderTop: '1px solid rgba(255,255,255,0.05)',
+        background: '#FFFFFF',
+        borderTop: '1px solid #CCCCCC',
         padding: '32px',
       }}
     >
@@ -60,7 +60,7 @@ export function Footer() {
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ShieldLogo />
-            <span style={{ fontSize: '14px', fontWeight: 600, color: '#EDF0F7' }}>NextGenAML</span>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: '#333333' }}>NextGenAML</span>
           </div>
 
           {/* Nav links */}
@@ -96,7 +96,7 @@ export function Footer() {
         </div>
 
         {/* Divider */}
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.04)' }} />
+        <div style={{ height: '1px', background: '#CCCCCC' }} />
 
         {/* Row 2 */}
         <div
@@ -124,8 +124,8 @@ export function Footer() {
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                background: '#22C55E',
-                boxShadow: '0 0 6px #22C55E',
+                background: '#1A7A3C',
+                boxShadow: '0 0 6px #1A7A3C',
                 animation: 'footerPulse 2s ease-in-out infinite',
               }}
             />

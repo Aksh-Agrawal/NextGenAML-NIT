@@ -8,9 +8,9 @@ export const NAV_LINKS = [
 ];
 
 export const HERO_STATS = [
-  { value: "93%", label: "Precision", color: "#FF3D57" },
-  { value: "12ms", label: "Inference", color: "#4D8EFF" },
-  { value: "5", label: "AML Typologies", color: "#A78BFA" },
+  { value: "93%", label: "Precision", color: "#DA251C" },
+  { value: "12ms", label: "Inference", color: "#00579C" },
+  { value: "5", label: "AML Typologies", color: "#003F7A" },
 ];
 
 export const TYPOLOGIES = [
@@ -19,40 +19,40 @@ export const TYPOLOGIES = [
     title: "Rapid Layering",
     body: "Funds moved through accounts in minutes. Traced via velocity burst detection and temporal edge analysis.",
     tag: "velocity_24h feature",
-    accent: "#FFB547",
-    accentDim: "rgba(255,181,71,0.12)",
+    accent: "#003F7A",
+    accentDim: "rgba(0,63,122,0.12)",
   },
   {
     id: "circular",
     title: "Circular Round-Trip",
     body: "A→B→C→A round-trip flows detected via Cypher path matching (3–6 hop cycles) in the property graph.",
     tag: "MATCH p=(a)-[:TXN*3..6]->(a)",
-    accent: "#FF3D57",
-    accentDim: "rgba(255,61,87,0.12)",
+    accent: "#DA251C",
+    accentDim: "rgba(218,37,28,0.12)",
   },
   {
     id: "structuring",
     title: "Structuring / Smurfing",
     body: "Transactions clustered ₹9,000–9,999 to stay below ₹10 lakh reporting threshold. Automated cluster detection.",
     tag: "StructuringDetector",
-    accent: "#4D8EFF",
-    accentDim: "rgba(77,142,255,0.12)",
+    accent: "#00579C",
+    accentDim: "rgba(0,87,156,0.12)",
   },
   {
     id: "dormant",
     title: "Dormant Activation",
     body: "180+ day inactive accounts suddenly receiving large transfers. GraphSAGE inductive inference on unseen nodes.",
     tag: "GraphSAGE zero-shot",
-    accent: "#2DD4BF",
-    accentDim: "rgba(45,212,191,0.12)",
+    accent: "#003F7A",
+    accentDim: "rgba(0,63,122,0.12)",
   },
   {
     id: "kyc",
     title: "KYC–Transaction Mismatch",
     body: "Customer risk profile vs. actual behavioral pattern discrepancy — caught at edge classification layer.",
     tag: "PatternAwareEncoder",
-    accent: "#A78BFA",
-    accentDim: "rgba(167,139,250,0.12)",
+    accent: "#00579C",
+    accentDim: "rgba(0,87,156,0.12)",
   },
 ];
 
@@ -62,62 +62,62 @@ export const ARCH_LAYERS = [
     name: "DATA LAYER",
     tech: "Memgraph",
     specs: ["500K+ transactions", "Cypher queries", "Property graph"],
-    color: "#4D8EFF",
+    color: "#00579C",
   },
   {
     id: "ml",
     name: "ML INFERENCE",
     tech: "LineMVGNN v2.0",
     specs: ["GraphSAGE", "PatternEncoder", "FP16 precision"],
-    color: "#A78BFA",
+    color: "#003F7A",
   },
   {
     id: "api",
     name: "FASTAPI BACKEND",
     tech: "REST API",
     specs: ["17 endpoints", "Prometheus metrics", "Real-time monitor"],
-    color: "#2DD4BF",
+    color: "#DA251C",
   },
   {
     id: "dashboard",
     name: "DASHBOARD",
     tech: "Next.js Frontend",
     specs: ["Pyvis graphs", "SAR XML gen", "Alert triage"],
-    color: "#22C55E",
+    color: "#00579C",
   },
 ];
 
 export const ARCH_STATS = [
-  { value: "~12ms", label: "inference latency", accent: "#4D8EFF" },
-  { value: "8 GB", label: "RTX 4050 VRAM", accent: "#A78BFA" },
-  { value: "FP16", label: "mixed precision", accent: "#22C55E" },
+  { value: "~12ms", label: "inference latency", accent: "#00579C" },
+  { value: "8 GB", label: "RTX 4050 VRAM", accent: "#003F7A" },
+  { value: "FP16", label: "mixed precision", accent: "#DA251C" },
 ];
 
 export const TECH_ROWS = [
   {
     label: "Graph",
     items: [
-      { name: "Memgraph", color: "#4D8EFF" },
-      { name: "GQLAlchemy", color: "#4D8EFF" },
-      { name: "Cypher", color: "#2DD4BF" },
+      { name: "Memgraph", color: "#00579C" },
+      { name: "GQLAlchemy", color: "#00579C" },
+      { name: "Cypher", color: "#003F7A" },
     ],
   },
   {
     label: "ML",
     items: [
-      { name: "PyTorch", color: "#FF3D57" },
-      { name: "PyG", color: "#A78BFA" },
-      { name: "LineMVGNN", color: "#A78BFA" },
-      { name: "GraphSAGE", color: "#A78BFA" },
+      { name: "PyTorch", color: "#DA251C" },
+      { name: "PyG", color: "#003F7A" },
+      { name: "LineMVGNN", color: "#003F7A" },
+      { name: "GraphSAGE", color: "#003F7A" },
     ],
   },
   {
     label: "Backend",
     items: [
-      { name: "FastAPI", color: "#22C55E" },
-      { name: "uvicorn", color: "#22C55E" },
-      { name: "Pydantic", color: "#4D8EFF" },
-      { name: "Prometheus", color: "#FFB547" },
+      { name: "FastAPI", color: "#00579C" },
+      { name: "uvicorn", color: "#00579C" },
+      { name: "Pydantic", color: "#003F7A" },
+      { name: "Prometheus", color: "#DA251C" },
     ],
   },
   {

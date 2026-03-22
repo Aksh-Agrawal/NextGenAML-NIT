@@ -1,21 +1,21 @@
-import { Navbar } from '@/components/landing/Navbar'
-import { Hero } from '@/components/landing/Hero'
-import { Typologies } from '@/components/landing/Typologies'
-import { Architecture } from '@/components/landing/Architecture'
-import { TechStack } from '@/components/landing/TechStack'
-import { DemoPreview } from '@/components/landing/DemoPreview'
-import { Metrics } from '@/components/landing/Metrics'
-import { HowItWorks } from '@/components/landing/HowItWorks'
-import { Attribution } from '@/components/landing/Attribution'
-import { Footer } from '@/components/landing/Footer'
+import { Navbar } from "@/components/landing/Navbar";
+import { Hero } from "@/components/landing/Hero";
+import { Typologies } from "@/components/landing/Typologies";
+import { Architecture } from "@/components/landing/Architecture";
+import { TechStack } from "@/components/landing/TechStack";
+import { DemoPreview } from "@/components/landing/DemoPreview";
+import { Metrics } from "@/components/landing/Metrics";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { Attribution } from "@/components/landing/Attribution";
+import { Footer } from "@/components/landing/Footer";
 
 export default function LandingPage() {
   return (
     <div
       style={{
-        minHeight: '100vh',
-        background: '#06070B',
-        color: '#EDF0F7',
+        minHeight: "100vh",
+        background: "#FFFFFF",
+        color: "#333333",
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
@@ -48,5 +48,5 @@ export default function LandingPage() {
 
       <Footer />
     </div>
-  )
+  );
 }

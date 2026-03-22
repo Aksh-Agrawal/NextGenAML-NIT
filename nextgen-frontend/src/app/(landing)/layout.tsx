@@ -15,7 +15,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NextGenAML — Graph Neural Network AML Intelligence | Union Bank of India",
+  title:
+    "NextGenAML — Graph Neural Network AML Intelligence | Union Bank of India",
   description:
     "Next-generation Anti-Money Laundering system powered by Graph Neural Networks. 93% precision, 12ms inference, detecting 5 AML typologies in real-time. Union Bank of India · Hackathon 2026.",
   keywords:
@@ -54,8 +55,8 @@ export default function LandingLayout({
     >
       <body
         style={{
-          background: "#06070B",
-          color: "#EDF0F7",
+          background: "#FFFFFF",
+          color: "#333333",
           fontFamily: "var(--font-inter), system-ui, sans-serif",
           overflowX: "hidden",
           margin: 0,

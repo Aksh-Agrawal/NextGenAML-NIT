@@ -197,11 +197,11 @@ const KYCIcon = ({ color }: { color: string }) => (
       y1="14.5"
       x2="22"
       y2="16.5"
-      stroke="#0A0B0F"
+      stroke="#FFFFFF"
       strokeWidth="1.2"
       strokeLinecap="round"
     />
-    <circle cx="22" cy="17.5" r="0.6" fill="#0A0B0F" />
+    <circle cx="22" cy="17.5" r="0.6" fill="#FFFFFF" />
   </svg>
 );
 
@@ -247,7 +247,7 @@ export function Typologies() {
           style={{
             fontSize: "11px",
             fontFamily: "'JetBrains Mono', monospace",
-            color: "#A78BFA",
+            color: "#003F7A",
             letterSpacing: "2px",
             textTransform: "uppercase",
             marginBottom: "12px",
@@ -259,7 +259,7 @@ export function Typologies() {
           style={{
             fontSize: "clamp(28px, 3.5vw, 42px)",
             fontWeight: 700,
-            color: "#EDF0F7",
+            color: "#333333",
             letterSpacing: "-0.5px",
             marginBottom: "14px",
           }}
@@ -300,8 +300,8 @@ export function Typologies() {
               key={t.id}
               variants={fadeUp}
               style={{
-                background: "#0F1117",
-                border: "1px solid rgba(255,255,255,0.06)",
+                background: "#F8FAFC",
+                border: "1px solid #CCCCCC",
                 borderRadius: "20px",
                 padding: "24px",
                 display: "flex",
@@ -339,7 +339,7 @@ export function Typologies() {
                   style={{
                     fontSize: "15px",
                     fontWeight: 600,
-                    color: "#EDF0F7",
+                    color: "#333333",
                     marginBottom: "8px",
                     lineHeight: 1.3,
                   }}
@@ -363,8 +363,8 @@ export function Typologies() {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  background: "#161922",
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "#F8FAFC",
+                  border: "1px solid #CCCCCC",
                   borderRadius: "999px",
                   padding: "3px 10px",
                   fontSize: "9.5px",

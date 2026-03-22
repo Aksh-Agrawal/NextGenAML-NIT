@@ -7,10 +7,10 @@ import { DEMO_ALERTS } from '@/lib/landing-data'
 const TABS = ['Fund Flow Graph', 'Alert Triage', 'SAR Report']
 
 const RISK_COLORS: Record<string, { bg: string; border: string; color: string }> = {
-  CRITICAL: { bg: 'rgba(255,61,87,0.12)', border: 'rgba(255,61,87,0.3)', color: '#FF3D57' },
+  CRITICAL: { bg: 'rgba(218,37,28,0.12)', border: 'rgba(218,37,28,0.3)', color: '#DA251C' },
   HIGH: { bg: 'rgba(255,181,71,0.12)', border: 'rgba(255,181,71,0.3)', color: '#FFB547' },
-  MEDIUM: { bg: 'rgba(77,142,255,0.12)', border: 'rgba(77,142,255,0.3)', color: '#4D8EFF' },
-  LOW: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.25)', color: '#22C55E' },
+  MEDIUM: { bg: 'rgba(0,87,156,0.12)', border: 'rgba(0,87,156,0.3)', color: '#00579C' },
+  LOW: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.25)', color: '#1A7A3C' },
 }
 
 // Simplified SVG graph for fund flow panel
@@ -43,7 +43,7 @@ function MiniNetworkGraph() {
           key={i}
           x1={nodes[e.a].x} y1={nodes[e.a].y}
           x2={nodes[e.b].x} y2={nodes[e.b].y}
-          stroke={e.red ? '#FF3D57' : '#9299AD'}
+          stroke={e.red ? '#DA251C' : '#9299AD'}
           strokeOpacity={e.red ? 0.8 : 0.2}
           strokeWidth={e.red ? 1.5 : 1}
           filter={e.red ? 'url(#glow)' : undefined}
@@ -52,12 +52,12 @@ function MiniNetworkGraph() {
       {nodes.map((n) => (
         <g key={n.id}>
           {n.flagged && (
-            <circle cx={n.x} cy={n.y} r="14" fill="rgba(255,61,87,0.08)" stroke="rgba(255,61,87,0.3)" strokeWidth="1" />
+            <circle cx={n.x} cy={n.y} r="14" fill="rgba(218,37,28,0.08)" stroke="rgba(218,37,28,0.3)" strokeWidth="1" />
           )}
           <circle
             cx={n.x} cy={n.y} r={n.flagged ? 8 : 6}
-            fill={n.flagged ? 'rgba(255,61,87,0.6)' : '#161922'}
-            stroke={n.flagged ? '#FF3D57' : 'rgba(167,139,250,0.4)'}
+            fill={n.flagged ? 'rgba(218,37,28,0.6)' : '#F8FAFC'}
+            stroke={n.flagged ? '#DA251C' : 'rgba(0,63,122,0.4)'}
             strokeWidth="1.5"
             filter={n.flagged ? 'url(#glow)' : undefined}
           />
@@ -96,7 +96,7 @@ function FundFlowPanel() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 220px', height: '100%', gap: 0 }}>
       {/* Account list */}
-      <div style={{ borderRight: '1px solid rgba(255,255,255,0.06)', padding: '12px 0', overflowY: 'auto' }}>
+      <div style={{ borderRight: '1px solid #CCCCCC', padding: '12px 0', overflowY: 'auto' }}>
         <div style={{ padding: '6px 12px', fontSize: '9px', color: '#4A5068', fontFamily: 'monospace', letterSpacing: '1.5px', marginBottom: '4px' }}>
           ACCOUNTS
         </div>
@@ -111,11 +111,11 @@ function FundFlowPanel() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: '8px',
-                borderBottom: '1px solid rgba(255,255,255,0.03)',
+                borderBottom: '1px solid #CCCCCC',
                 cursor: 'pointer',
               }}
             >
-              <span style={{ fontSize: '11px', fontFamily: 'monospace', color: '#EDF0F7' }}>{a.id}</span>
+              <span style={{ fontSize: '11px', fontFamily: 'monospace', color: '#333333' }}>{a.id}</span>
               <span
                 style={{
                   fontSize: '9px',
@@ -135,37 +135,37 @@ function FundFlowPanel() {
       </div>
 
       {/* Graph */}
-      <div style={{ padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#06070B' }}>
+      <div style={{ padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}>
         <MiniNetworkGraph />
       </div>
 
       {/* Detail panel */}
-      <div style={{ borderLeft: '1px solid rgba(255,255,255,0.06)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ borderLeft: '1px solid #CCCCCC', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ fontSize: '9px', color: '#4A5068', fontFamily: 'monospace', letterSpacing: '1px' }}>ACCOUNT DETAIL</div>
-        <div style={{ fontSize: '14px', fontFamily: 'monospace', color: '#EDF0F7', fontWeight: 600 }}>ACCT-8921</div>
+        <div style={{ fontSize: '14px', fontFamily: 'monospace', color: '#333333', fontWeight: 600 }}>ACCT-8921</div>
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            background: 'rgba(255,61,87,0.12)',
-            border: '1px solid rgba(255,61,87,0.3)',
+            background: 'rgba(218,37,28,0.12)',
+            border: '1px solid rgba(218,37,28,0.3)',
             borderRadius: '6px',
             padding: '4px 10px',
             fontSize: '11px',
-            color: '#FF3D57',
+            color: '#DA251C',
             fontFamily: 'monospace',
             fontWeight: 600,
             width: 'fit-content',
           }}
         >
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FF3D57', animation: 'demoPulse 2s infinite' }} />
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#DA251C', animation: 'demoPulse 2s infinite' }} />
           CRITICAL
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {[
-            { label: 'Fraud Prob', value: '93%', color: '#FF3D57' },
-            { label: 'Circular', value: '0.91', color: '#A78BFA' },
+            { label: 'Fraud Prob', value: '93%', color: '#DA251C' },
+            { label: 'Circular', value: '0.91', color: '#003F7A' },
             { label: 'Layering', value: '0.87', color: '#FFB547' },
           ].map((s) => (
             <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -174,12 +174,12 @@ function FundFlowPanel() {
             </div>
           ))}
         </div>
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+        <div style={{ height: '1px', background: '#CCCCCC' }} />
         <button
           style={{
-            background: 'rgba(255,61,87,0.12)',
-            border: '1px solid rgba(255,61,87,0.3)',
-            color: '#FF3D57',
+            background: 'rgba(218,37,28,0.12)',
+            border: '1px solid rgba(218,37,28,0.3)',
+            color: '#DA251C',
             borderRadius: '8px',
             padding: '7px 12px',
             fontSize: '11px',
@@ -200,7 +200,7 @@ function AlertTriagePanel() {
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '600px' }}>
         <thead>
-          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <tr style={{ borderBottom: '1px solid #CCCCCC' }}>
             {['Account ID', 'Risk', 'Probability', 'Patterns', 'Amount', 'Action'].map((h) => (
               <th
                 key={h}
@@ -228,12 +228,12 @@ function AlertTriagePanel() {
               <tr
                 key={a.id}
                 style={{
-                  borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  background: i === 0 ? 'rgba(255,61,87,0.04)' : 'transparent',
-                  borderLeft: i === 0 ? '2px solid #FF3D57' : '2px solid transparent',
+                  borderBottom: '1px solid #CCCCCC',
+                  background: i === 0 ? 'rgba(218,37,28,0.04)' : 'transparent',
+                  borderLeft: i === 0 ? '2px solid #DA251C' : '2px solid transparent',
                 }}
               >
-                <td style={{ padding: '11px 14px', fontFamily: 'monospace', color: '#EDF0F7', fontWeight: 500 }}>
+                <td style={{ padding: '11px 14px', fontFamily: 'monospace', color: '#333333', fontWeight: 500 }}>
                   {a.id}
                 </td>
                 <td style={{ padding: '11px 14px' }}>
@@ -259,7 +259,7 @@ function AlertTriagePanel() {
                       style={{
                         flex: 1,
                         height: '4px',
-                        background: 'rgba(255,255,255,0.08)',
+                        background: '#CCCCCC',
                         borderRadius: '2px',
                         overflow: 'hidden',
                       }}
@@ -288,8 +288,8 @@ function AlertTriagePanel() {
                           fontFamily: 'monospace',
                           padding: '2px 6px',
                           borderRadius: '4px',
-                          background: '#161922',
-                          border: '1px solid rgba(255,255,255,0.06)',
+                          background: '#F8FAFC',
+                          border: '1px solid #CCCCCC',
                           color: '#9299AD',
                         }}
                       >
@@ -298,12 +298,12 @@ function AlertTriagePanel() {
                     ))}
                   </div>
                 </td>
-                <td style={{ padding: '11px 14px', fontFamily: 'monospace', color: '#EDF0F7' }}>{a.amount}</td>
+                <td style={{ padding: '11px 14px', fontFamily: 'monospace', color: '#333333' }}>{a.amount}</td>
                 <td style={{ padding: '11px 14px' }}>
                   <button
                     style={{
-                      background: a.risk === 'CRITICAL' || a.risk === 'HIGH' ? rc.bg : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${a.risk === 'CRITICAL' || a.risk === 'HIGH' ? rc.border : 'rgba(255,255,255,0.06)'}`,
+                      background: a.risk === 'CRITICAL' || a.risk === 'HIGH' ? rc.bg : '#CCCCCC',
+                      border: `1px solid ${a.risk === 'CRITICAL' || a.risk === 'HIGH' ? rc.border : '#CCCCCC'}`,
                       color: a.risk === 'CRITICAL' || a.risk === 'HIGH' ? rc.color : '#9299AD',
                       borderRadius: '6px',
                       padding: '5px 10px',
@@ -329,7 +329,7 @@ function SARReportPanel() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', height: '100%', gap: 0 }}>
       {/* Form */}
-      <div style={{ borderRight: '1px solid rgba(255,255,255,0.06)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ borderRight: '1px solid #CCCCCC', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ fontSize: '9px', color: '#4A5068', fontFamily: 'monospace', letterSpacing: '1.5px' }}>
           SAR REPORT GENERATOR
         </div>
@@ -337,13 +337,13 @@ function SARReportPanel() {
           <label style={{ fontSize: '10px', color: '#9299AD', fontFamily: 'monospace' }}>Account ID</label>
           <div
             style={{
-              background: '#0A0B0F',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: '#FFFFFF',
+              border: '1px solid #CCCCCC',
               borderRadius: '6px',
               padding: '7px 10px',
               fontSize: '12px',
               fontFamily: 'monospace',
-              color: '#EDF0F7',
+              color: '#333333',
             }}
           >
             ACCT-8921
@@ -352,9 +352,9 @@ function SARReportPanel() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <label style={{ fontSize: '10px', color: '#9299AD', fontFamily: 'monospace' }}>Typologies</label>
           {['Circular Round-Trip', 'Rapid Layering'].map((t) => (
-            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '11px', color: '#EDF0F7', fontFamily: 'monospace' }}>
-              <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(167,139,250,0.3)', border: '1px solid rgba(167,139,250,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontSize: '8px', color: '#A78BFA' }}>✓</span>
+            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '11px', color: '#333333', fontFamily: 'monospace' }}>
+              <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(0,63,122,0.3)', border: '1px solid rgba(0,63,122,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: '8px', color: '#003F7A' }}>✓</span>
               </div>
               {t}
             </div>
@@ -362,7 +362,7 @@ function SARReportPanel() {
         </div>
         <button
           style={{
-            background: 'linear-gradient(135deg, #4D8EFF, #A78BFA)',
+            background: 'linear-gradient(135deg, #00579C, #003F7A)',
             color: 'white',
             border: 'none',
             borderRadius: '8px',
@@ -387,7 +387,7 @@ function SARReportPanel() {
         style={{
           padding: '16px',
           overflowY: 'auto',
-          background: '#06070B',
+          background: '#FFFFFF',
           fontFamily: "'JetBrains Mono', monospace",
           fontSize: '11px',
           lineHeight: 1.7,
@@ -404,7 +404,7 @@ function SARReportPanel() {
               <span key={i}>
                 {line.split(/(<\/?[\w:.-]+[^>]*>)/g).map((part, j) =>
                   part.startsWith('<') ? (
-                    <span key={j} style={{ color: '#4D8EFF' }}>{part}</span>
+                    <span key={j} style={{ color: '#00579C' }}>{part}</span>
                   ) : (
                     <span key={j} style={{ color: '#9299AD' }}>{part}</span>
                   )
@@ -439,7 +439,7 @@ export function DemoPreview() {
           style={{
             fontSize: '11px',
             fontFamily: "'JetBrains Mono', monospace",
-            color: '#22C55E',
+            color: '#1A7A3C',
             letterSpacing: '2px',
             textTransform: 'uppercase',
             marginBottom: '12px',
@@ -451,7 +451,7 @@ export function DemoPreview() {
           style={{
             fontSize: 'clamp(28px, 3.5vw, 42px)',
             fontWeight: 700,
-            color: '#EDF0F7',
+            color: '#333333',
             letterSpacing: '-0.5px',
             marginBottom: '14px',
           }}
@@ -471,10 +471,10 @@ export function DemoPreview() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         style={{
           borderRadius: '20px',
-          border: '1px solid rgba(255,255,255,0.08)',
-          background: '#06070B',
+          border: '1px solid #CCCCCC',
+          background: '#FFFFFF',
           overflow: 'hidden',
-          boxShadow: '0 0 80px rgba(77,142,255,0.08), 0 0 200px rgba(167,139,250,0.04)',
+          boxShadow: '0 0 80px rgba(0,87,156,0.08), 0 0 200px rgba(0,63,122,0.04)',
         }}
       >
         {/* Browser chrome */}
@@ -482,7 +482,7 @@ export function DemoPreview() {
           style={{
             height: '38px',
             background: '#0F1117',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid #CCCCCC',
             display: 'flex',
             alignItems: 'center',
             padding: '0 14px',
@@ -491,7 +491,7 @@ export function DemoPreview() {
         >
           {/* Traffic lights */}
           <div style={{ display: 'flex', gap: '6px' }}>
-            {['#FF3D57', '#FFB547', '#22C55E'].map((c) => (
+            {['#DA251C', '#FFB547', '#1A7A3C'].map((c) => (
               <div key={c} style={{ width: '10px', height: '10px', borderRadius: '50%', background: c, opacity: 0.7 }} />
             ))}
           </div>
@@ -499,8 +499,8 @@ export function DemoPreview() {
           <div
             style={{
               flex: 1,
-              background: '#161922',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: '#F8FAFC',
+              border: '1px solid #CCCCCC',
               borderRadius: '6px',
               height: '22px',
               display: 'flex',
@@ -511,7 +511,7 @@ export function DemoPreview() {
               margin: '0 auto',
             }}
           >
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22C55E', opacity: 0.8 }} />
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#1A7A3C', opacity: 0.8 }} />
             <span style={{ fontSize: '10px', color: '#4A5068', fontFamily: 'monospace' }}>
               localhost:3000 — NextGenAML Dashboard
             </span>
@@ -522,8 +522,8 @@ export function DemoPreview() {
         <div
           style={{
             display: 'flex',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            background: '#0A0B0F',
+            borderBottom: '1px solid #CCCCCC',
+            background: '#FFFFFF',
           }}
         >
           {TABS.map((tab, i) => (
@@ -534,10 +534,10 @@ export function DemoPreview() {
                 padding: '10px 20px',
                 fontSize: '11px',
                 fontFamily: 'monospace',
-                color: activeTab === i ? '#EDF0F7' : '#4A5068',
+                color: activeTab === i ? '#333333' : '#4A5068',
                 background: activeTab === i ? '#0F1117' : 'transparent',
                 border: 'none',
-                borderBottom: activeTab === i ? '2px solid #4D8EFF' : '2px solid transparent',
+                borderBottom: activeTab === i ? '2px solid #00579C' : '2px solid transparent',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 whiteSpace: 'nowrap',
@@ -558,9 +558,9 @@ export function DemoPreview() {
 
       <style jsx>{`
         @keyframes demoPulse {
-          0% { box-shadow: 0 0 0 0 rgba(255,61,87,0.5); }
-          70% { box-shadow: 0 0 0 6px rgba(255,61,87,0); }
-          100% { box-shadow: 0 0 0 0 rgba(255,61,87,0); }
+          0% { box-shadow: 0 0 0 0 rgba(218,37,28,0.5); }
+          70% { box-shadow: 0 0 0 6px rgba(218,37,28,0); }
+          100% { box-shadow: 0 0 0 0 rgba(218,37,28,0); }
         }
       `}</style>
     </section>

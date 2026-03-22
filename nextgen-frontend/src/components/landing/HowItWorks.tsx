@@ -32,7 +32,7 @@ export function HowItWorks() {
           style={{
             fontSize: 'clamp(28px, 3.5vw, 42px)',
             fontWeight: 700,
-            color: '#EDF0F7',
+            color: '#333333',
             letterSpacing: '-0.5px',
           }}
         >
@@ -55,7 +55,7 @@ export function HowItWorks() {
                     bottom: '-32px',
                     width: '1px',
                     height: '32px',
-                    background: 'rgba(255,255,255,0.06)',
+                    background: '#CCCCCC',
                     transform: 'translateX(-50%)',
                     zIndex: 0,
                   }}
@@ -111,7 +111,7 @@ export function HowItWorks() {
                       style={{
                         fontSize: '19px',
                         fontWeight: 600,
-                        color: '#EDF0F7',
+                        color: '#333333',
                         margin: 0,
                         lineHeight: 1.3,
                       }}
@@ -134,8 +134,8 @@ export function HowItWorks() {
                   {/* Code block */}
                   <div
                     style={{
-                      background: '#06070B',
-                      border: '1px solid rgba(255,255,255,0.07)',
+                      background: '#FFFFFF',
+                      border: '1px solid #CCCCCC',
                       borderRadius: '10px',
                       padding: '12px 16px',
                       fontFamily: "'JetBrains Mono', monospace",

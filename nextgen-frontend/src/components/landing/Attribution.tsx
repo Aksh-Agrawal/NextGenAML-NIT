@@ -6,8 +6,8 @@ const ShieldLogo = () => (
   <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="attrLogoGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#A78BFA" />
-        <stop offset="100%" stopColor="#4D8EFF" />
+        <stop offset="0%" stopColor="#003F7A" />
+        <stop offset="100%" stopColor="#00579C" />
       </linearGradient>
     </defs>
     <path
@@ -32,9 +32,9 @@ const ShieldLogo = () => (
 )
 
 const BADGES = [
-  { icon: '🔥', label: 'Built with PyTorch GNN', color: '#FF3D57' },
-  { icon: '✨', label: 'Powered by Gemini 2.0 Flash', color: '#4D8EFF' },
-  { icon: '📋', label: 'FIU-IND Compliant', color: '#22C55E' },
+  { icon: '🔥', label: 'Built with PyTorch GNN', color: '#DA251C' },
+  { icon: '✨', label: 'Powered by Gemini 2.0 Flash', color: '#00579C' },
+  { icon: '📋', label: 'FIU-IND Compliant', color: '#1A7A3C' },
 ]
 
 export function Attribution() {
@@ -43,7 +43,7 @@ export function Attribution() {
       style={{
         padding: '80px 32px',
         textAlign: 'center',
-        borderTop: '1px solid rgba(255,255,255,0.04)',
+        borderTop: '1px solid #CCCCCC',
       }}
     >
       <motion.div
@@ -58,7 +58,7 @@ export function Attribution() {
           style={{
             fontSize: '28px',
             fontWeight: 500,
-            color: '#EDF0F7',
+            color: '#333333',
             letterSpacing: '-0.5px',
             margin: 0,
           }}
@@ -93,8 +93,8 @@ export function Attribution() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                background: '#161922',
-                border: '1px solid rgba(255,255,255,0.06)',
+                background: '#F8FAFC',
+                border: '1px solid #CCCCCC',
                 borderRadius: '999px',
                 padding: '7px 18px',
                 fontSize: '12px',
@@ -107,7 +107,7 @@ export function Attribution() {
                 e.currentTarget.style.color = b.color
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.borderColor = '#CCCCCC'
                 e.currentTarget.style.color = '#9299AD'
               }}
             >

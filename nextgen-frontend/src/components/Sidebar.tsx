@@ -227,12 +227,12 @@ function NeuralShieldIcon() {
     >
       <defs>
         <linearGradient id="shieldGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#A78BFA" />
-          <stop offset="100%" stopColor="#4D8EFF" />
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#FFFFFF" />
         </linearGradient>
         <linearGradient id="nodeGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#A78BFA" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#6366F1" stopOpacity="0.7" />
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.7" />
         </linearGradient>
       </defs>
       {/* Shield shape */}

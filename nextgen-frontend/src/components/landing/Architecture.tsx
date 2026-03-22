@@ -8,12 +8,12 @@ const ArrowRight = () => (
   <svg width="32" height="16" viewBox="0 0 32 16" fill="none" style={{ flexShrink: 0 }}>
     <defs>
       <linearGradient id="arrowGrad" x1="0" y1="0" x2="32" y2="0" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#4D8EFF" />
-        <stop offset="100%" stopColor="#A78BFA" />
+        <stop offset="0%" stopColor="#00579C" />
+        <stop offset="100%" stopColor="#003F7A" />
       </linearGradient>
     </defs>
     <line x1="0" y1="8" x2="26" y2="8" stroke="url(#arrowGrad)" strokeWidth="1.5" strokeDasharray="4 2" />
-    <polygon points="26,4 32,8 26,12" fill="#A78BFA" />
+    <polygon points="26,4 32,8 26,12" fill="#003F7A" />
   </svg>
 )
 
@@ -24,8 +24,8 @@ function ArchLayer({ layer, index, isInView }: { layer: (typeof ARCH_LAYERS)[0];
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5, delay: index * 0.15, ease: [0.22, 1, 0.36, 1] }}
       style={{
-        background: '#161922',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: '#F8FAFC',
+        border: '1px solid #CCCCCC',
         borderRadius: '16px',
         padding: '20px',
         flex: 1,
@@ -83,7 +83,7 @@ function ArchLayer({ layer, index, isInView }: { layer: (typeof ARCH_LAYERS)[0];
         style={{
           fontSize: '16px',
           fontWeight: 600,
-          color: '#EDF0F7',
+          color: '#333333',
           marginBottom: '12px',
           lineHeight: 1.3,
         }}
@@ -123,9 +123,9 @@ export function Architecture() {
       id="architecture"
       style={{
         padding: '100px 32px',
-        background: '#0A0B0F',
-        borderTop: '1px solid rgba(255,255,255,0.04)',
-        borderBottom: '1px solid rgba(255,255,255,0.04)',
+        background: '#FFFFFF',
+        borderTop: '1px solid #CCCCCC',
+        borderBottom: '1px solid #CCCCCC',
       }}
     >
       <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
@@ -141,7 +141,7 @@ export function Architecture() {
             style={{
               fontSize: '11px',
               fontFamily: "'JetBrains Mono', monospace",
-              color: '#4D8EFF',
+              color: '#00579C',
               letterSpacing: '2px',
               textTransform: 'uppercase',
               marginBottom: '12px',
@@ -153,7 +153,7 @@ export function Architecture() {
             style={{
               fontSize: 'clamp(28px, 3.5vw, 42px)',
               fontWeight: 700,
-              color: '#EDF0F7',
+              color: '#333333',
               letterSpacing: '-0.5px',
               marginBottom: '14px',
             }}
@@ -210,8 +210,8 @@ export function Architecture() {
                 visible: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: 'easeOut' } },
               }}
               style={{
-                background: '#0F1117',
-                border: '1px solid rgba(255,255,255,0.06)',
+                background: '#F8FAFC',
+                border: '1px solid #CCCCCC',
                 borderRadius: '16px',
                 padding: '24px 28px',
                 display: 'flex',
@@ -234,7 +234,7 @@ export function Architecture() {
                   style={{
                     fontSize: '28px',
                     fontWeight: 700,
-                    color: '#EDF0F7',
+                    color: '#333333',
                     fontFamily: "'JetBrains Mono', monospace",
                     lineHeight: 1,
                     marginBottom: '4px',

@@ -20,8 +20,8 @@ const ShieldLogo = () => (
         y2="48"
         gradientUnits="userSpaceOnUse"
       >
-        <stop offset="0%" stopColor="#A78BFA" />
-        <stop offset="100%" stopColor="#4D8EFF" />
+        <stop offset="0%" stopColor="#FFFFFF" />
+        <stop offset="100%" stopColor="#FFFFFF" />
       </linearGradient>
     </defs>
     {/* Shield path */}
@@ -118,11 +118,11 @@ export function Navbar() {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 32px",
-          background: "rgba(6,7,11,0.85)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          boxShadow: scrolled ? "0 1px 0 rgba(255,255,255,0.06)" : "none",
+          background: "#00579C",
+          backdropFilter: "none",
+          WebkitBackdropFilter: "none",
+          borderBottom: "1px solid #003F7A",
+          boxShadow: scrolled ? "0 2px 10px rgba(0,0,0,0.1)" : "none",
           transition: "box-shadow 0.3s ease",
         }}
       >
@@ -137,12 +137,12 @@ export function Navbar() {
           }}
         >
           <ShieldLogo />
-          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             <span
               style={{
                 fontSize: "16px",
-                fontWeight: 600,
-                color: "#EDF0F7",
+                fontWeight: 700,
+                color: "#FFFFFF",
                 letterSpacing: "-0.3px",
                 lineHeight: 1,
               }}
@@ -152,7 +152,7 @@ export function Navbar() {
             <span
               style={{
                 fontSize: "10px",
-                color: "#4A5068",
+                color: "rgba(255,255,255,0.7)",
                 fontFamily: "'JetBrains Mono', monospace",
                 letterSpacing: "0.2px",
                 lineHeight: 1,
@@ -174,13 +174,16 @@ export function Navbar() {
               href={link.href}
               style={{
                 fontSize: "13px",
-                color: "#9299AD",
+                color: "rgba(255,255,255,0.7)",
                 textDecoration: "none",
+                fontWeight: 500,
                 transition: "color 0.2s ease",
                 position: "relative",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#EDF0F7")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#9299AD")}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#FFFFFF")}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.color = "rgba(255,255,255,0.7)")
+              }
             >
               {link.label}
             </a>
@@ -190,21 +193,21 @@ export function Navbar() {
             href="/dashboard"
             style={{
               fontSize: "13px",
-              color: "#4D8EFF",
-              border: "1px solid rgba(77,142,255,0.4)",
+              color: "#FFFFFF",
+              border: "1px solid #DA251C",
               borderRadius: "6px",
               padding: "6px 16px",
               textDecoration: "none",
               transition: "all 0.2s ease",
-              background: "transparent",
+              background: "#DA251C",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(77,142,255,0.12)";
-              e.currentTarget.style.borderColor = "rgba(77,142,255,0.6)";
+              e.currentTarget.style.background = "#B01E17";
+              e.currentTarget.style.borderColor = "#B01E17";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.borderColor = "rgba(77,142,255,0.4)";
+              e.currentTarget.style.background = "#DA251C";
+              e.currentTarget.style.borderColor = "#DA251C";
             }}
           >
             View Demo
@@ -219,7 +222,7 @@ export function Navbar() {
             display: "none",
             background: "none",
             border: "none",
-            color: "#EDF0F7",
+            color: "#333333",
             cursor: "pointer",
             padding: "8px",
           }}
@@ -252,7 +255,7 @@ export function Navbar() {
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(6,7,11,0.98)",
+            background: "rgba(255,255,255,0.98)",
             backdropFilter: "blur(16px)",
             zIndex: 49,
             display: "flex",
@@ -268,11 +271,11 @@ export function Navbar() {
               onClick={() => setMobileOpen(false)}
               style={{
                 fontSize: "20px",
-                color: "#EDF0F7",
+                color: "#333333",
                 textDecoration: "none",
                 fontWeight: 500,
                 padding: "12px 0",
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                borderBottom: "1px solid #CCCCCC",
               }}
             >
               {link.label}
@@ -283,8 +286,8 @@ export function Navbar() {
             onClick={() => setMobileOpen(false)}
             style={{
               fontSize: "16px",
-              color: "#4D8EFF",
-              border: "1px solid rgba(77,142,255,0.4)",
+              color: "#FFFFFF",
+              border: "1px solid rgba(0,87,156,0.4)",
               borderRadius: "8px",
               padding: "12px 20px",
               textDecoration: "none",
