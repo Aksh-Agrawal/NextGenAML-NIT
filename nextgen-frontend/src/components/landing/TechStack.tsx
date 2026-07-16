@@ -21,7 +21,7 @@ export function TechStack() {
           style={{
             fontSize: "11px",
             fontFamily: "'JetBrains Mono', monospace",
-            color: "#00579C",
+            color: "var(--accent-blue)",
             letterSpacing: "2px",
             textTransform: "uppercase",
             marginBottom: "12px",
@@ -33,7 +33,7 @@ export function TechStack() {
           style={{
             fontSize: "clamp(28px, 3.5vw, 42px)",
             fontWeight: 700,
-            color: "#333333",
+            color: "var(--text-primary)",
             letterSpacing: "-0.5px",
           }}
         >
@@ -62,7 +62,7 @@ export function TechStack() {
               style={{
                 fontSize: "10px",
                 fontFamily: "'JetBrains Mono', monospace",
-                color: "#4A5068",
+                color: "var(--text-muted)",
                 letterSpacing: "1.5px",
                 textTransform: "uppercase",
                 width: "54px",
@@ -77,7 +77,7 @@ export function TechStack() {
               style={{
                 width: "1px",
                 height: "28px",
-                background: "#CCCCCC",
+                background: "var(--border)",
                 flexShrink: 0,
               }}
             />
@@ -104,18 +104,21 @@ export function TechStack() {
                       transition: { duration: 0.3, ease: "easeOut" },
                     },
                   }}
-                  whileHover={{ scale: 1.04, borderColor: "#00579C" }}
+                  whileHover={{
+                    scale: 1.04,
+                    borderColor: "rgba(0,229,255,0.36)",
+                  }}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "8px",
-                    background: "#F8FAFC",
-                    border: "1px solid #CCCCCC",
+                    background: "var(--bg-elevated)",
+                    border: "1px solid var(--border)",
                     borderRadius: "10px",
                     padding: "8px 16px",
                     fontSize: "13px",
                     fontFamily: "'JetBrains Mono', monospace",
-                    color: "#333333",
+                    color: "var(--text-primary)",
                     cursor: "default",
                     transition: "border-color 0.15s ease, transform 0.15s ease",
                   }}

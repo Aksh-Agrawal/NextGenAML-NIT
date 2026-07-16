@@ -191,17 +191,17 @@ const KYCIcon = ({ color }: { color: string }) => (
       strokeOpacity="0.5"
     />
     {/* Warning triangle */}
-    <polygon points="19,18 25,18 22,13.5" fill="#FFB547" />
+    <polygon points="19,18 25,18 22,13.5" fill="#FFAA00" />
     <line
       x1="22"
       y1="14.5"
       x2="22"
       y2="16.5"
-      stroke="#FFFFFF"
+      stroke="#0B0F19"
       strokeWidth="1.2"
       strokeLinecap="round"
     />
-    <circle cx="22" cy="17.5" r="0.6" fill="#FFFFFF" />
+    <circle cx="22" cy="17.5" r="0.6" fill="#0B0F19" />
   </svg>
 );
 
@@ -247,7 +247,7 @@ export function Typologies() {
           style={{
             fontSize: "11px",
             fontFamily: "'JetBrains Mono', monospace",
-            color: "#003F7A",
+            color: "var(--accent-blue)",
             letterSpacing: "2px",
             textTransform: "uppercase",
             marginBottom: "12px",
@@ -259,7 +259,7 @@ export function Typologies() {
           style={{
             fontSize: "clamp(28px, 3.5vw, 42px)",
             fontWeight: 700,
-            color: "#333333",
+            color: "var(--text-primary)",
             letterSpacing: "-0.5px",
             marginBottom: "14px",
           }}
@@ -269,7 +269,7 @@ export function Typologies() {
         <p
           style={{
             fontSize: "16px",
-            color: "#9299AD",
+            color: "var(--text-secondary)",
             maxWidth: "540px",
             margin: "0 auto",
             lineHeight: 1.65,
@@ -300,8 +300,8 @@ export function Typologies() {
               key={t.id}
               variants={fadeUp}
               style={{
-                background: "#F8FAFC",
-                border: "1px solid #CCCCCC",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border)",
                 borderRadius: "20px",
                 padding: "24px",
                 display: "flex",
@@ -339,7 +339,7 @@ export function Typologies() {
                   style={{
                     fontSize: "15px",
                     fontWeight: 600,
-                    color: "#333333",
+                    color: "var(--text-primary)",
                     marginBottom: "8px",
                     lineHeight: 1.3,
                   }}
@@ -349,7 +349,7 @@ export function Typologies() {
                 <p
                   style={{
                     fontSize: "13px",
-                    color: "#9299AD",
+                    color: "var(--text-secondary)",
                     lineHeight: 1.65,
                     margin: 0,
                   }}
@@ -363,13 +363,13 @@ export function Typologies() {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  background: "#F8FAFC",
-                  border: "1px solid #CCCCCC",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid var(--border)",
                   borderRadius: "999px",
                   padding: "3px 10px",
                   fontSize: "9.5px",
-                  color: "#4A5068",
-                  fontFamily: "'JetBrains Mono', monospace",
+                  color: "var(--text-muted)",
+                  fontFamily: "var(--font-mono), 'JetBrains Mono', monospace",
                   width: "fit-content",
                   overflow: "hidden",
                   textOverflow: "ellipsis",

@@ -1,358 +1,479 @@
-'use client'
+"use client";
 
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { motion, AnimatePresence } from 'framer-motion'
-import * as d3 from 'd3'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import * as d3 from "d3";
+import { useRouter } from "next/navigation";
 import {
-  ZoomIn, ZoomOut, Maximize2, Download, Filter,
-  ChevronRight, X, ExternalLink, FileText
-} from 'lucide-react'
-import { api, type GraphNode, type GraphEdge } from '@/lib/api'
-import { formatAmount, getRiskColor, getRiskFromScore, getRiskFromProb } from '@/lib/utils'
-import { RiskBadge, ProbabilityBar, LoadingState, ErrorCard } from '@/components/ui'
-import CountUp from 'react-countup'
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Download,
+  Filter,
+  ChevronRight,
+  X,
+  ExternalLink,
+  FileText,
+} from "lucide-react";
+import { api, type GraphNode, type GraphEdge } from "@/lib/api";
+import {
+  formatAmount,
+  getRiskColor,
+  getRiskFromScore,
+  getRiskFromProb,
+} from "@/lib/utils";
+import {
+  RiskBadge,
+  ProbabilityBar,
+  LoadingState,
+  ErrorCard,
+} from "@/components/ui";
+import CountUp from "react-countup";
 
 interface FundFlowGraphProps {
-  accountId: string
+  accountId: string;
 }
 
-type Layout = 'force' | 'circular' | 'hierarchical'
+type Layout = "force" | "circular" | "hierarchical";
+
+function isHighFraudProbability(score?: number) {
+  const normalized = (score ?? 0) <= 1 ? (score ?? 0) * 100 : (score ?? 0);
+  return normalized > 50;
+}
 
 export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
-  const svgRef = useRef<SVGSVGElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const simulationRef = useRef<d3.Simulation<any, any> | null>(null)
-  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null)
-  const [selectedNode, setSelectedNode] = useState<string | null>(null)
-  const [layout, setLayout] = useState<Layout>('force')
-  const [showSuspiciousOnly, setShowSuspiciousOnly] = useState(false)
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null)
-  const router = useRouter()
+  const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const simulationRef = useRef<d3.Simulation<any, any> | null>(null);
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [layout, setLayout] = useState<Layout>("force");
+  const [showSuspiciousOnly, setShowSuspiciousOnly] = useState(false);
+  const [tooltip, setTooltip] = useState<{
+    x: number;
+    y: number;
+    text: string;
+  } | null>(null);
+  const router = useRouter();
 
-  const { data: subgraph, isLoading, error, refetch } = useQuery({
-    queryKey: ['subgraph', accountId],
+  const {
+    data: subgraph,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["subgraph", accountId],
     queryFn: () => api.subgraph(accountId),
     enabled: !!accountId,
-  })
+  });
 
   const { data: prediction } = useQuery({
-    queryKey: ['predict', selectedNode],
+    queryKey: ["predict", selectedNode],
     queryFn: () => api.predictQuery(selectedNode!),
     enabled: !!selectedNode,
-  })
+  });
 
   const { data: explain } = useQuery({
-    queryKey: ['explain', selectedNode],
+    queryKey: ["explain", selectedNode],
     queryFn: () => api.explain(selectedNode!),
     enabled: !!selectedNode,
-  })
+  });
 
-  const [renderKey, setRenderKey] = useState(0)
+  const [renderKey, setRenderKey] = useState(0);
 
   // trigger re-render after mount so SVG has actual dimensions
   useEffect(() => {
-    const t = setTimeout(() => setRenderKey((k) => k + 1), 100)
-    return () => clearTimeout(t)
-  }, [accountId, subgraph])
+    const t = setTimeout(() => setRenderKey((k) => k + 1), 100);
+    return () => clearTimeout(t);
+  }, [accountId, subgraph]);
 
   const handleZoomIn = useCallback(() => {
-    if (!svgRef.current || !zoomRef.current) return
-    d3.select(svgRef.current).transition().duration(250).call(zoomRef.current.scaleBy, 1.4)
-  }, [])
+    if (!svgRef.current || !zoomRef.current) return;
+    d3.select(svgRef.current)
+      .transition()
+      .duration(250)
+      .call(zoomRef.current.scaleBy, 1.4);
+  }, []);
 
   const handleZoomOut = useCallback(() => {
-    if (!svgRef.current || !zoomRef.current) return
-    d3.select(svgRef.current).transition().duration(250).call(zoomRef.current.scaleBy, 1 / 1.4)
-  }, [])
+    if (!svgRef.current || !zoomRef.current) return;
+    d3.select(svgRef.current)
+      .transition()
+      .duration(250)
+      .call(zoomRef.current.scaleBy, 1 / 1.4);
+  }, []);
 
   const handleFit = useCallback(() => {
-    if (!svgRef.current || !zoomRef.current) return
-    d3.select(svgRef.current).transition().duration(500).call(zoomRef.current.transform, d3.zoomIdentity)
-  }, [])
+    if (!svgRef.current || !zoomRef.current) return;
+    d3.select(svgRef.current)
+      .transition()
+      .duration(500)
+      .call(zoomRef.current.transform, d3.zoomIdentity);
+  }, []);
 
   useEffect(() => {
-    if (!svgRef.current || !subgraph) return
+    if (!svgRef.current || !subgraph) return;
 
-    const svg = d3.select(svgRef.current)
+    const svg = d3.select(svgRef.current);
 
     // Use actual bounding rect, fall back to window dimensions
-    const rect = svgRef.current.getBoundingClientRect()
-    const W = rect.width > 10 ? rect.width : (svgRef.current.parentElement?.getBoundingClientRect().width ?? 900)
-    const H = rect.height > 10 ? rect.height : 600
+    const rect = svgRef.current.getBoundingClientRect();
+    const W =
+      rect.width > 10
+        ? rect.width
+        : (svgRef.current.parentElement?.getBoundingClientRect().width ?? 900);
+    const H = rect.height > 10 ? rect.height : 600;
 
     // Grid background
-    const defs = svg.append('defs')
-    const pattern = defs.append('pattern')
-      .attr('id', 'grid')
-      .attr('width', 40)
-      .attr('height', 40)
-      .attr('patternUnits', 'userSpaceOnUse')
-    pattern.append('path').attr('d', 'M 40 0 L 0 0 0 40').attr('fill', 'none').attr('stroke', 'rgba(255,255,255,0.04)').attr('stroke-width', 1)
-    svg.append('rect').attr('width', '100%').attr('height', '100%').attr('fill', 'url(#grid)')
+    const defs = svg.append("defs");
+    const pattern = defs
+      .append("pattern")
+      .attr("id", "grid")
+      .attr("width", 40)
+      .attr("height", 40)
+      .attr("patternUnits", "userSpaceOnUse");
+    pattern
+      .append("path")
+      .attr("d", "M 40 0 L 0 0 0 40")
+      .attr("fill", "none")
+      .attr("stroke", "rgba(255,255,255,0.05)")
+      .attr("stroke-width", 1);
+    svg
+      .append("rect")
+      .attr("width", "100%")
+      .attr("height", "100%")
+      .attr("fill", "url(#grid)");
 
     // Arrow marker
-    defs.append('marker')
-      .attr('id', 'arrow-normal')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 18)
-      .attr('refY', 0)
-      .attr('markerWidth', 4)
-      .attr('markerHeight', 4)
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', 'var(--text-muted)')
-      .attr('opacity', 0.5)
+    defs
+      .append("marker")
+      .attr("id", "arrow-normal")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 18)
+      .attr("refY", 0)
+      .attr("markerWidth", 4)
+      .attr("markerHeight", 4)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-5L10,0L0,5")
+      .attr("fill", "var(--text-muted)")
+      .attr("opacity", 0.5);
 
-    defs.append('marker')
-      .attr('id', 'arrow-red')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 18)
-      .attr('refY', 0)
-      .attr('markerWidth', 4)
-      .attr('markerHeight', 4)
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', 'var(--accent-red)')
+    defs
+      .append("marker")
+      .attr("id", "arrow-red")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 18)
+      .attr("refY", 0)
+      .attr("markerWidth", 4)
+      .attr("markerHeight", 4)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-5L10,0L0,5")
+      .attr("fill", "var(--accent-red)");
 
     // Glow filter
-    const filter = defs.append('filter').attr('id', 'node-glow').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%')
-    filter.append('feGaussianBlur').attr('stdDeviation', 4).attr('result', 'blur')
-    filter.append('feComposite').attr('in', 'SourceGraphic').attr('in2', 'blur').attr('operator', 'over')
+    const filter = defs
+      .append("filter")
+      .attr("id", "node-glow")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+    filter
+      .append("feGaussianBlur")
+      .attr("stdDeviation", 4)
+      .attr("result", "blur");
+    filter
+      .append("feComposite")
+      .attr("in", "SourceGraphic")
+      .attr("in2", "blur")
+      .attr("operator", "over");
 
-    const container = svg.append('g').attr('class', 'container')
+    const container = svg.append("g").attr("class", "container");
 
     // Zoom
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
+    const zoom = d3
+      .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
-      .on('zoom', (e) => container.attr('transform', e.transform))
-    svg.call(zoom)
-    zoomRef.current = zoom
+      .on("zoom", (e) => container.attr("transform", e.transform));
+    svg.call(zoom);
+    zoomRef.current = zoom;
 
     const links = showSuspiciousOnly
       ? subgraph.links.filter((l) => l.is_suspicious)
-      : subgraph.links
+      : subgraph.links;
 
-    const linkedIds = new Set(links.flatMap((l) => [l.source as string, l.target as string]))
+    const linkedIds = new Set(
+      links.flatMap((l) => [l.source as string, l.target as string]),
+    );
     const nodes = showSuspiciousOnly
       ? subgraph.nodes.filter((n) => linkedIds.has(n.id) || n.id === accountId)
-      : subgraph.nodes
+      : subgraph.nodes;
 
     // Calculate positions based on layout
-    let startPos: Map<string, { x: number; y: number }> = new Map()
-    if (layout === 'circular') {
+    let startPos: Map<string, { x: number; y: number }> = new Map();
+    if (layout === "circular") {
       nodes.forEach((n, i) => {
-        const angle = (2 * Math.PI * i) / nodes.length
-        const r = Math.min(W, H) * 0.35
-        startPos.set(n.id, { x: W / 2 + r * Math.cos(angle), y: H / 2 + r * Math.sin(angle) })
-      })
-    } else if (layout === 'hierarchical') {
-      const center = nodes.find((n) => n.id === accountId)
-      const others = nodes.filter((n) => n.id !== accountId)
-      startPos.set(accountId, { x: W / 2, y: H * 0.2 })
+        const angle = (2 * Math.PI * i) / nodes.length;
+        const r = Math.min(W, H) * 0.35;
+        startPos.set(n.id, {
+          x: W / 2 + r * Math.cos(angle),
+          y: H / 2 + r * Math.sin(angle),
+        });
+      });
+    } else if (layout === "hierarchical") {
+      const center = nodes.find((n) => n.id === accountId);
+      const others = nodes.filter((n) => n.id !== accountId);
+      startPos.set(accountId, { x: W / 2, y: H * 0.2 });
       others.forEach((n, i) => {
-        const cols = Math.ceil(Math.sqrt(others.length))
-        const row = Math.floor(i / cols)
-        const col = i % cols
+        const cols = Math.ceil(Math.sqrt(others.length));
+        const row = Math.floor(i / cols);
+        const col = i % cols;
         startPos.set(n.id, {
           x: W * 0.15 + (col / Math.max(cols - 1, 1)) * W * 0.7,
           y: H * 0.4 + row * 100,
-        })
-      })
+        });
+      });
     }
 
     const simNodes = nodes.map((n) => ({
       ...n,
       x: startPos.get(n.id)?.x ?? W / 2 + (Math.random() - 0.5) * 100,
       y: startPos.get(n.id)?.y ?? H / 2 + (Math.random() - 0.5) * 100,
-      fx: layout !== 'force' ? (startPos.get(n.id)?.x ?? undefined) : undefined,
-      fy: layout !== 'force' ? (startPos.get(n.id)?.y ?? undefined) : undefined,
-    }))
+      fx: layout !== "force" ? (startPos.get(n.id)?.x ?? undefined) : undefined,
+      fy: layout !== "force" ? (startPos.get(n.id)?.y ?? undefined) : undefined,
+    }));
 
-    const simLinks = links.map((l) => ({ ...l }))
+    const simLinks = links.map((l) => ({ ...l }));
 
     const sim = d3
       .forceSimulation(simNodes)
-      .force('link', d3.forceLink(simLinks).id((d: any) => d.id).distance(100).strength(0.5))
-      .force('charge', d3.forceManyBody().strength(layout === 'force' ? -300 : -50))
-      .force('center', layout === 'force' ? d3.forceCenter(W / 2, H / 2) : null)
-      .force('collision', d3.forceCollide(30))
+      .force(
+        "link",
+        d3
+          .forceLink(simLinks)
+          .id((d: any) => d.id)
+          .distance(100)
+          .strength(0.5),
+      )
+      .force(
+        "charge",
+        d3.forceManyBody().strength(layout === "force" ? -300 : -50),
+      )
+      .force("center", layout === "force" ? d3.forceCenter(W / 2, H / 2) : null)
+      .force("collision", d3.forceCollide(30));
 
-    simulationRef.current = sim
+    simulationRef.current = sim;
 
     // Edges
     const edgeEl = container
-      .append('g')
-      .selectAll('line')
+      .append("g")
+      .selectAll("line")
       .data(simLinks)
       .enter()
-      .append('line')
-      .attr('stroke', (d: any) => {
-        const weight = d.value ?? 0.3
-        const maxVal = Math.max(...links.map((l) => l.value || 1))
-        const norm = (d.value || 0) / maxVal
-        if (d.is_suspicious || norm > 0.7) return 'var(--accent-red)'
-        if (norm > 0.4) return 'var(--accent-amber)'
-        return 'var(--text-muted)'
+      .append("line")
+      .attr("stroke", (d: any) => {
+        const weight = d.value ?? 0.3;
+        const maxVal = Math.max(...links.map((l) => l.value || 1));
+        const norm = (d.value || 0) / maxVal;
+        if (d.is_suspicious || norm > 0.7) return "var(--accent-red)";
+        if (norm > 0.4) return "rgba(0,229,255,0.55)";
+        return "rgba(183,194,214,0.36)";
       })
-      .attr('stroke-width', (d: any) => {
-        const maxVal = Math.max(...links.map((l) => l.value || 1))
-        const norm = (d.value || 0) / maxVal
-        if (d.is_suspicious || norm > 0.7) return 2.5
-        if (norm > 0.4) return 1.5
-        return 1
+      .attr("stroke-width", (d: any) => {
+        const maxVal = Math.max(...links.map((l) => l.value || 1));
+        const norm = (d.value || 0) / maxVal;
+        if (d.is_suspicious || norm > 0.7) return 2.5;
+        if (norm > 0.4) return 1.5;
+        return 1;
       })
-      .attr('stroke-opacity', (d: any) => (d.is_suspicious ? 0.9 : 0.5))
-      .attr('marker-end', (d: any) => d.is_suspicious ? 'url(#arrow-red)' : 'url(#arrow-normal)')
-      .attr('stroke-dasharray', (d: any) => d.is_suspicious ? '6,4' : null)
-      .on('mouseover', function(e, d: any) {
-        setTooltip({ x: e.pageX, y: e.pageY, text: `₹${(d.value || 0).toLocaleString('en-IN')}` })
+      .attr("stroke-opacity", (d: any) => (d.is_suspicious ? 0.92 : 0.45))
+      .attr("marker-end", (d: any) =>
+        d.is_suspicious ? "url(#arrow-red)" : "url(#arrow-normal)",
+      )
+      .attr("stroke-dasharray", (d: any) => (d.is_suspicious ? "7,5" : null))
+      .attr("stroke-linecap", "round")
+      .on("mouseover", function (e, d: any) {
+        setTooltip({
+          x: e.pageX,
+          y: e.pageY,
+          text: `₹${(d.value || 0).toLocaleString("en-IN")}`,
+        });
       })
-      .on('mousemove', function(e) {
-        setTooltip((prev) => prev ? { ...prev, x: e.pageX, y: e.pageY } : null)
+      .on("mousemove", function (e) {
+        setTooltip((prev) =>
+          prev ? { ...prev, x: e.pageX, y: e.pageY } : null,
+        );
       })
-      .on('mouseout', () => setTooltip(null))
+      .on("mouseout", () => setTooltip(null));
 
-    // Animate suspicious edges
-    if (true) {
-      edgeEl.filter((d: any) => d.is_suspicious)
-        .style('animation', 'flow-dash 0.8s linear infinite')
-    }
+    edgeEl
+      .filter((d: any) => d.is_suspicious)
+      .style("animation", "flow-dash 0.9s linear infinite");
 
     // Node groups
     const nodeGroup = container
-      .append('g')
-      .selectAll('.node')
+      .append("g")
+      .selectAll(".node")
       .data(simNodes)
       .enter()
-      .append('g')
-      .style('cursor', 'pointer')
+      .append("g")
+      .style("cursor", "pointer")
       .call(
-        d3.drag<SVGGElement, any>()
-          .on('start', (e, d) => {
-            if (!e.active) sim.alphaTarget(0.3).restart()
-            d.fx = d.x; d.fy = d.y
+        d3
+          .drag<SVGGElement, any>()
+          .on("start", (e, d) => {
+            if (!e.active) sim.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
           })
-          .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y })
-          .on('end', (e, d) => {
-            if (!e.active) sim.alphaTarget(0)
-            if (layout === 'force') { d.fx = null; d.fy = null }
+          .on("drag", (e, d) => {
+            d.fx = e.x;
+            d.fy = e.y;
+          })
+          .on("end", (e, d) => {
+            if (!e.active) sim.alphaTarget(0);
+            if (layout === "force") {
+              d.fx = null;
+              d.fy = null;
+            }
           }),
       )
-      .on('click', (e, d) => setSelectedNode(d.id))
+      .on("click", (e, d) => setSelectedNode(d.id));
 
     // Node outer ring (glow for selected/flagged)
-    nodeGroup.append('circle')
-      .attr('r', (d) => (d.id === accountId ? 20 : 14))
-      .attr('fill', 'none')
-      .attr('stroke', (d) => {
-        if (d.id === accountId) return 'var(--accent-purple)'
-        const level = getRiskFromScore(d.risk * 100)
-        return level === 'critical' || level === 'high' ? getRiskColor(level) : 'transparent'
+    nodeGroup
+      .append("circle")
+      .attr("r", (d) => (d.id === accountId ? 20 : 14))
+      .attr("fill", "none")
+      .attr("stroke", (d) => {
+        if (d.id === accountId) return "var(--accent-blue)";
+        return isHighFraudProbability(d.risk) ? "var(--accent-red)" : "transparent";
       })
-      .attr('stroke-width', 2)
-      .attr('stroke-opacity', 0.6)
-      .attr('class', (d) => d.id === accountId ? 'animate-ring-pulse-purple' : '')
+      .attr("stroke-width", 2)
+      .attr("stroke-opacity", 0.6)
+      .attr("class", (d) =>
+        d.id === accountId ? "animate-ring-pulse-purple" : "",
+      );
 
     // Node circles
-    nodeGroup.append('circle')
-      .attr('r', 0)
-      .attr('class', 'node-circle')
-      .attr('fill', (d) => {
-        if (d.id === accountId) return 'var(--accent-purple)'
-        const level = getRiskFromScore(d.risk * 100)
-        return getRiskColor(level)
+    nodeGroup
+      .append("circle")
+      .attr("r", 0)
+      .attr("class", "node-circle")
+      .attr("fill", (d) => {
+        if (d.id === accountId) return "var(--accent-blue)";
+        return isHighFraudProbability(d.risk)
+          ? "var(--accent-red)"
+          : "rgba(0,229,255,0.85)";
       })
-      .attr('fill-opacity', (d) => d.id === accountId ? 1 : 0.75)
-      .attr('stroke', (d) => {
-        if (d.id === accountId) return 'rgba(167,139,250,0.6)'
-        return 'rgba(255,255,255,0.1)'
+      .attr("fill-opacity", (d) => (d.id === accountId ? 1 : 0.75))
+      .attr("stroke", (d) => {
+        if (d.id === accountId) return "rgba(0,229,255,0.6)";
+        return "rgba(255,255,255,0.1)";
       })
-      .attr('stroke-width', 1.5)
-      .attr('filter', (d) => {
-        const level = getRiskFromScore(d.risk * 100)
-        return level === 'critical' || d.id === accountId ? 'url(#node-glow)' : ''
+      .attr("stroke-width", 1.5)
+      .attr("filter", (d) => {
+        return isHighFraudProbability(d.risk) || d.id === accountId
+          ? "url(#node-glow)"
+          : "";
       })
       .transition()
       .duration(600)
       .delay((_, i) => i * 30)
-      .attr('r', (d) => d.id === accountId ? 16 : 10)
+      .attr("r", (d) => (d.id === accountId ? 16 : 10));
 
     // Labels
-    nodeGroup.append('text')
-      .text((d) => d.id.length > 8 ? d.id.slice(-8) : d.id)
-      .attr('dy', (d) => (d.id === accountId ? 30 : 22))
-      .attr('text-anchor', 'middle')
-      .style('fill', (d) => d.id === accountId ? 'var(--accent-purple)' : 'var(--text-secondary)')
-      .style('font-size', (d) => d.id === accountId ? '11px' : '9px')
-      .style('font-weight', (d) => d.id === accountId ? '600' : '400')
+    nodeGroup
+      .append("text")
+      .text((d) => (d.id.length > 8 ? d.id.slice(-8) : d.id))
+      .attr("dy", (d) => (d.id === accountId ? 30 : 22))
+      .attr("text-anchor", "middle")
+      .style("fill", (d) =>
+        d.id === accountId ? "var(--accent-blue)" : "var(--text-secondary)",
+      )
+      .style("font-size", (d) => (d.id === accountId ? "11px" : "9px"))
+      .style("font-weight", (d) => (d.id === accountId ? "600" : "400"));
 
-    sim.on('tick', () => {
+    sim.on("tick", () => {
       edgeEl
-        .attr('x1', (d: any) => d.source.x)
-        .attr('y1', (d: any) => d.source.y)
-        .attr('x2', (d: any) => d.target.x)
-        .attr('y2', (d: any) => d.target.y)
-      nodeGroup.attr('transform', (d: any) => `translate(${d.x},${d.y})`)
-    })
+        .attr("x1", (d: any) => d.source.x)
+        .attr("y1", (d: any) => d.source.y)
+        .attr("x2", (d: any) => d.target.x)
+        .attr("y2", (d: any) => d.target.y);
+      nodeGroup.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
+    });
 
     // Initial selection
-    setSelectedNode(accountId)
+    setSelectedNode(accountId);
 
     return () => {
-      sim.stop()
-    }
-  }, [subgraph, layout, showSuspiciousOnly, accountId, renderKey])
+      sim.stop();
+    };
+  }, [subgraph, layout, showSuspiciousOnly, accountId, renderKey]);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', flex: 1, display: 'flex', overflow: 'hidden', height: '100%', minHeight: 500 }}>
+    <div
+      ref={containerRef}
+      style={{
+        position: "relative",
+        flex: 1,
+        display: "flex",
+        overflow: "hidden",
+        height: "100%",
+        minHeight: 500,
+      }}
+    >
       {/* Toolbar */}
       <div
         style={{
-          position: 'absolute',
+          position: "absolute",
           top: 12,
           left: 12,
           zIndex: 10,
-          display: 'flex',
-          alignItems: 'center',
+          display: "flex",
+          alignItems: "center",
           gap: 8,
-          padding: '6px 10px',
-          background: 'rgba(17,19,24,0.9)',
-          border: '1px solid var(--border)',
-          borderRadius: 10,
-          backdropFilter: 'blur(8px)',
+          padding: "6px 10px",
+          background: "rgba(11,15,25,0.82)",
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          backdropFilter: "blur(10px)",
         }}
       >
-        {(['force', 'circular', 'hierarchical'] as Layout[]).map((l) => (
+        {(["force", "circular", "hierarchical"] as Layout[]).map((l) => (
           <button
             key={l}
             onClick={() => setLayout(l)}
             className="btn-ghost"
             style={{
-              padding: '4px 10px',
+              padding: "4px 10px",
               fontSize: 11,
-              textTransform: 'capitalize',
-              background: layout === l ? 'rgba(77,142,255,0.2)' : undefined,
-              borderColor: layout === l ? 'rgba(77,142,255,0.4)' : undefined,
-              color: layout === l ? 'var(--accent-blue)' : undefined,
+              textTransform: "capitalize",
+              background: layout === l ? "rgba(0,229,255,0.2)" : undefined,
+              borderColor: layout === l ? "rgba(0,229,255,0.36)" : undefined,
+              color: layout === l ? "var(--accent-blue)" : undefined,
             }}
           >
             {l}
           </button>
         ))}
-        <div style={{ width: 1, height: 20, background: 'var(--border)' }} />
+        <div style={{ width: 1, height: 20, background: "var(--border)" }} />
         <button
           onClick={() => setShowSuspiciousOnly(!showSuspiciousOnly)}
           className="btn-ghost"
           style={{
-            padding: '4px 10px',
+            padding: "4px 10px",
             fontSize: 11,
-            background: showSuspiciousOnly ? 'rgba(255,61,87,0.15)' : undefined,
-            borderColor: showSuspiciousOnly ? 'rgba(255,61,87,0.3)' : undefined,
-            color: showSuspiciousOnly ? 'var(--accent-red)' : undefined,
+            background: showSuspiciousOnly
+              ? "rgba(255,61,113,0.14)"
+              : undefined,
+            borderColor: showSuspiciousOnly
+              ? "rgba(255,61,113,0.3)"
+              : undefined,
+            color: showSuspiciousOnly ? "var(--accent-red)" : undefined,
           }}
         >
           <Filter size={11} />
@@ -363,19 +484,25 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       {/* Zoom Controls */}
       <div
         style={{
-          position: 'absolute',
+          position: "absolute",
           top: 12,
           right: selectedNode ? 344 : 12,
           zIndex: 10,
-          display: 'flex',
-          flexDirection: 'column',
+          display: "flex",
+          flexDirection: "column",
           gap: 4,
-          transition: 'right 0.35s ease',
+          transition: "right 0.35s ease",
         }}
       >
-        <button className="btn-icon" onClick={handleZoomIn} title="Zoom In"><ZoomIn size={14} /></button>
-        <button className="btn-icon" onClick={handleZoomOut} title="Zoom Out"><ZoomOut size={14} /></button>
-        <button className="btn-icon" onClick={handleFit} title="Fit to screen"><Maximize2 size={14} /></button>
+        <button className="btn-icon" onClick={handleZoomIn} title="Zoom In">
+          <ZoomIn size={14} />
+        </button>
+        <button className="btn-icon" onClick={handleZoomOut} title="Zoom Out">
+          <ZoomOut size={14} />
+        </button>
+        <button className="btn-icon" onClick={handleFit} title="Fit to screen">
+          <Maximize2 size={14} />
+        </button>
       </div>
 
       {/* Main SVG */}
@@ -385,13 +512,22 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
         </div>
       ) : error ? (
         <div className="flex-1 flex items-center justify-center">
-          <ErrorCard message={`Failed to load subgraph for ${accountId}`} onRetry={() => refetch()} />
+          <ErrorCard
+            message={`Failed to load subgraph for ${accountId}`}
+            onRetry={() => refetch()}
+          />
         </div>
       ) : (
         <svg
           ref={svgRef}
           className="graph-canvas"
-          style={{ flex: 1, width: '100%', height: '100%', minHeight: 500, display: 'block' }}
+          style={{
+            flex: 1,
+            width: "100%",
+            height: "100%",
+            minHeight: 500,
+            display: "block",
+          }}
         />
       )}
 
@@ -399,7 +535,11 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       {tooltip && (
         <div
           className="tooltip"
-          style={{ left: tooltip.x + 12, top: tooltip.y - 28, position: 'fixed' }}
+          style={{
+            left: tooltip.x + 12,
+            top: tooltip.y - 28,
+            position: "fixed",
+          }}
         >
           {tooltip.text}
         </div>
@@ -412,25 +552,41 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
             initial={{ x: 320, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 320, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+            transition={{ type: "spring", stiffness: 400, damping: 35 }}
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               right: 0,
               width: 320,
-              height: '100%',
-              background: 'var(--bg-surface)',
-              borderLeft: '1px solid var(--border)',
-              display: 'flex',
-              flexDirection: 'column',
-              overflowY: 'auto',
+              height: "100%",
+              background: "rgba(11, 15, 25, 0.72)",
+              borderLeft: "1px solid var(--border)",
+              display: "flex",
+              flexDirection: "column",
+              overflowY: "auto",
               zIndex: 5,
             }}
           >
             {/* Panel Header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Node Intelligence</span>
-              <button className="btn-icon" style={{ padding: 4 }} onClick={() => setSelectedNode(null)}>
+            <div
+              className="flex items-center justify-between px-4 py-4 border-b"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-muted)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.8px",
+                }}
+              >
+                Node Intelligence
+              </span>
+              <button
+                className="btn-icon"
+                style={{ padding: 4 }}
+                onClick={() => setSelectedNode(null)}
+              >
                 <X size={13} />
               </button>
             </div>
@@ -438,14 +594,26 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
             <div className="p-4 space-y-5">
               {/* Account ID */}
               <div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>ACCOUNT ID</div>
-                <div style={{
-                  fontSize: 16,
-                  fontWeight: 700,
-                  fontFamily: 'JetBrains Mono, monospace',
-                  color: prediction ? getRiskColor(prediction.risk_level) : 'var(--accent-purple)',
-                  wordBreak: 'break-all',
-                }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "var(--text-muted)",
+                    marginBottom: 4,
+                  }}
+                >
+                  ACCOUNT ID
+                </div>
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    fontFamily: "JetBrains Mono, monospace",
+                    color: prediction
+                      ? getRiskColor(prediction.risk_level)
+                      : "var(--accent-blue)",
+                    wordBreak: "break-all",
+                  }}
+                >
                   {selectedNode}
                 </div>
               </div>
@@ -453,23 +621,44 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
               {/* Risk Gauge */}
               {explain && (
                 <div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8 }}>RISK SCORE</div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--text-muted)",
+                      marginBottom: 8,
+                    }}
+                  >
+                    RISK SCORE
+                  </div>
                   <SemicircleGauge value={explain.risk_score} max={100} />
                 </div>
               )}
 
               {/* Fraud Probability */}
               {prediction && (
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6 }}>FRAUD PROBABILITY</div>
-                  <div style={{
-                    fontSize: 42,
-                    fontWeight: 800,
-                    fontFamily: 'JetBrains Mono, monospace',
-                    color: getRiskColor(prediction.risk_level),
-                    lineHeight: 1,
-                    filter: prediction.fraud_probability > 0.75 ? `drop-shadow(0 0 12px ${getRiskColor(prediction.risk_level)}60)` : 'none',
-                  }}>
+                <div style={{ textAlign: "center" }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--text-muted)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    FRAUD PROBABILITY
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 42,
+                      fontWeight: 800,
+                      fontFamily: "Roboto Mono, JetBrains Mono, monospace",
+                      color: getRiskColor(prediction.risk_level),
+                      lineHeight: 1,
+                      filter:
+                        prediction.fraud_probability > 0.75
+                          ? `drop-shadow(0 0 12px ${getRiskColor(prediction.risk_level)}60)`
+                          : "none",
+                    }}
+                  >
                     <CountUp
                       end={prediction.fraud_probability * 100}
                       duration={1.2}
@@ -486,18 +675,48 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
               {/* Risk Factors */}
               {explain && explain.risk_factors.length > 0 && (
                 <div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8 }}>RISK FACTORS</div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--text-muted)",
+                      marginBottom: 8,
+                    }}
+                  >
+                    RISK FACTORS
+                  </div>
                   <div className="space-y-3">
                     {explain.risk_factors.map((rf) => (
                       <div key={rf.factor}>
                         <div className="flex justify-between mb-1">
-                          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{rf.factor}</span>
-                          <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: getRiskColor(getRiskFromProb(rf.score)) }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            {rf.factor}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontFamily:
+                                "Roboto Mono, JetBrains Mono, monospace",
+                              color: getRiskColor(getRiskFromProb(rf.score)),
+                            }}
+                          >
                             {(rf.score * 100).toFixed(0)}%
                           </span>
                         </div>
                         <ProbabilityBar value={rf.score} height={4} />
-                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{rf.description}</div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: "var(--text-muted)",
+                            marginTop: 3,
+                          }}
+                        >
+                          {rf.description}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -506,16 +725,45 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
 
               {/* Pattern Scores */}
               <div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8 }}>PATTERN ANALYSIS</div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "var(--text-muted)",
+                    marginBottom: 8,
+                  }}
+                >
+                  PATTERN ANALYSIS
+                </div>
                 <div className="space-y-2">
                   {[
-                    { label: 'Structuring', value: 0.35 },
-                    { label: 'Velocity', value: prediction ? prediction.fraud_probability * 0.8 : 0.2 },
-                    { label: 'Temporal Anomaly', value: explain ? explain.risk_score / 200 : 0.15 },
+                    { label: "Structuring", value: 0.35 },
+                    {
+                      label: "Velocity",
+                      value: prediction
+                        ? prediction.fraud_probability * 0.8
+                        : 0.2,
+                    },
+                    {
+                      label: "Temporal Anomaly",
+                      value: explain ? explain.risk_score / 200 : 0.15,
+                    },
                   ].map((p) => (
                     <div key={p.label} className="flex items-center gap-2">
-                      <span style={{ fontSize: 11, color: 'var(--text-secondary)', minWidth: 110 }}>{p.label}</span>
-                      <ProbabilityBar value={p.value} height={4} showLabel className="flex-1" />
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: "var(--text-secondary)",
+                          minWidth: 110,
+                        }}
+                      >
+                        {p.label}
+                      </span>
+                      <ProbabilityBar
+                        value={p.value}
+                        height={4}
+                        showLabel
+                        className="flex-1"
+                      />
                     </div>
                   ))}
                 </div>
@@ -524,28 +772,53 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
               {/* Top Suspicious Edges */}
               {explain && explain.top_suspicious_edges.length > 0 && (
                 <div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8 }}>SUSPICIOUS EDGES</div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--text-muted)",
+                      marginBottom: 8,
+                    }}
+                  >
+                    SUSPICIOUS EDGES
+                  </div>
                   <div className="space-y-2">
                     {explain.top_suspicious_edges.slice(0, 4).map((e, i) => (
                       <div
                         key={i}
                         style={{
-                          padding: '6px 10px',
-                          background: 'var(--bg-elevated)',
-                          border: '1px solid var(--border)',
+                          padding: "6px 10px",
+                          background: "var(--bg-elevated)",
+                          border: "1px solid var(--border)",
                           borderRadius: 6,
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
                         }}
                       >
                         <div>
-                          <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)' }}>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              fontFamily: "JetBrains Mono, monospace",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
                             → {e.target}
                           </div>
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{e.tx_count} txns</div>
+                          <div
+                            style={{ fontSize: 10, color: "var(--text-muted)" }}
+                          >
+                            {e.tx_count} txns
+                          </div>
                         </div>
-                        <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent-amber)' }}>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontFamily:
+                              "Roboto Mono, JetBrains Mono, monospace",
+                            color: "var(--accent-amber)",
+                          }}
+                        >
                           {formatAmount(e.amount)}
                         </span>
                       </div>
@@ -556,15 +829,34 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
 
               {/* Recommendation */}
               {explain && (
-                <div style={{
-                  padding: 12,
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  borderLeft: '3px solid var(--accent-purple)',
-                }}>
-                  <div style={{ fontSize: 10, color: 'var(--accent-purple)', marginBottom: 4, fontWeight: 600 }}>RECOMMENDATION</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{explain.recommendation}</div>
+                <div
+                  style={{
+                    padding: 12,
+                    background: "var(--bg-elevated)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    borderLeft: "3px solid var(--accent-blue)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--accent-blue)",
+                      marginBottom: 4,
+                      fontWeight: 600,
+                    }}
+                  >
+                    RECOMMENDATION
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--text-secondary)",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {explain.recommendation}
+                  </div>
                 </div>
               )}
 
@@ -572,16 +864,24 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
               <div className="flex gap-2">
                 <button
                   className="btn-purple flex-1"
-                  style={{ fontSize: 12, padding: '8px 10px' }}
-                  onClick={() => router.push(`/sar-report?accountId=${encodeURIComponent(selectedNode)}`)}
+                  style={{ fontSize: 12, padding: "8px 10px" }}
+                  onClick={() =>
+                    router.push(
+                      `/sar-report?accountId=${encodeURIComponent(selectedNode)}`,
+                    )
+                  }
                 >
                   <FileText size={13} />
                   Generate SAR
                 </button>
                 <button
                   className="btn-ghost"
-                  style={{ fontSize: 12, padding: '8px 10px' }}
-                  onClick={() => router.push(`/fund-flow/${encodeURIComponent(selectedNode)}`)}
+                  style={{ fontSize: 12, padding: "8px 10px" }}
+                  onClick={() =>
+                    router.push(
+                      `/fund-flow/${encodeURIComponent(selectedNode)}`,
+                    )
+                  }
                 >
                   <ExternalLink size={13} />
                 </button>
@@ -600,35 +900,54 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
               cx={8 + (i % 8) * 18 + Math.random() * 4}
               cy={8 + Math.floor(i / 8) * 18 + Math.random() * 4}
               r={3 + (n.risk ?? 0.5) * 4}
-              fill={getRiskColor(getRiskFromScore((n.risk ?? 0.5) * 100))}
+                fill={isHighFraudProbability(n.risk)
+                  ? "var(--accent-red)"
+                  : "rgba(0,229,255,0.85)"}
               opacity={0.7}
             />
           ))}
         </svg>
-        <div style={{
-          position: 'absolute',
-          bottom: 4,
-          right: 4,
-          fontSize: 9,
-          color: 'var(--text-muted)',
-          fontFamily: 'JetBrains Mono, monospace',
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: 4,
+            right: 4,
+            fontSize: 9,
+            color: "var(--text-muted)",
+            fontFamily: "Roboto Mono, JetBrains Mono, monospace",
+          }}
+        >
           MINIMAP
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function SemicircleGauge({ value, max = 100 }: { value: number; max?: number }) {
-  const pct = value / max
-  const circumference = Math.PI * 60
-  const dash = pct * circumference
+function SemicircleGauge({
+  value,
+  max = 100,
+}: {
+  value: number;
+  max?: number;
+}) {
+  const pct = value / max;
+  const circumference = Math.PI * 60;
+  const dash = pct * circumference;
 
-  const color = value >= 75 ? 'var(--accent-red)' : value >= 50 ? 'var(--accent-amber)' : value >= 25 ? 'var(--accent-blue)' : 'var(--accent-green)'
+  const color =
+    value >= 75
+      ? "var(--accent-red)"
+      : value >= 50
+        ? "var(--accent-amber)"
+        : value >= 25
+          ? "var(--accent-blue)"
+          : "var(--accent-green)";
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div
+      style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+    >
       <svg width="160" height="90" viewBox="0 0 160 90">
         {/* Track */}
         <path
@@ -646,16 +965,38 @@ function SemicircleGauge({ value, max = 100 }: { value: number; max?: number }) 
           strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={`${dash} ${circumference}`}
-          style={{ transition: 'stroke-dasharray 0.8s ease, stroke 0.3s ease', filter: `drop-shadow(0 0 6px ${color}80)` }}
+          style={{
+            transition: "stroke-dasharray 0.8s ease, stroke 0.3s ease",
+            filter: `drop-shadow(0 0 6px ${color}80)`,
+          }}
         />
         {/* Value text */}
-        <text x="80" y="72" textAnchor="middle" style={{ fill: color, fontSize: 20, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>
+        <text
+          x="80"
+          y="72"
+          textAnchor="middle"
+          style={{
+            fill: color,
+            fontSize: 20,
+            fontFamily: "JetBrains Mono, monospace",
+            fontWeight: 700,
+          }}
+        >
           {value.toFixed(0)}
         </text>
-        <text x="80" y="84" textAnchor="middle" style={{ fill: 'var(--text-muted)', fontSize: 9, fontFamily: 'JetBrains Mono, monospace' }}>
+        <text
+          x="80"
+          y="84"
+          textAnchor="middle"
+          style={{
+            fill: "var(--text-muted)",
+            fontSize: 9,
+            fontFamily: "JetBrains Mono, monospace",
+          }}
+        >
           / {max}
         </text>
       </svg>
     </div>
-  )
+  );
 }

@@ -10,22 +10,22 @@ const METRICS_DATA = [
     suffix: "%",
     label: "Model",
     sub: "Precision",
-    accent: "#00579C",
+    accent: "#00E5FF",
   },
   {
     value: 12,
     suffix: "ms",
     label: "Inference",
     sub: "Latency",
-    accent: "#FFB547",
+    accent: "#FFAA00",
   },
-  { value: 5, suffix: "", label: "AML", sub: "Typologies", accent: "#003F7A" },
+  { value: 5, suffix: "", label: "AML", sub: "Typologies", accent: "#00E5FF" },
   {
     value: null,
     suffix: "",
     label: "FIU-IND",
     sub: "ARF/TRF XML",
-    accent: "#1A7A3C",
+    accent: "#00E676",
     special: "FIU-IND",
   },
 ];
@@ -37,9 +37,9 @@ export function Metrics() {
   return (
     <section
       style={{
-        background: "#FFFFFF",
-        borderTop: "1px solid #CCCCCC",
-        borderBottom: "1px solid #CCCCCC",
+        background: "var(--bg-base)",
+        borderTop: "1px solid var(--border)",
+        borderBottom: "1px solid var(--border)",
         padding: "64px 32px",
       }}
     >
@@ -64,7 +64,9 @@ export function Metrics() {
               justifyContent: "center",
               padding: "0 32px",
               borderRight:
-                i < METRICS_DATA.length - 1 ? "1px solid #CCCCCC" : "none",
+                i < METRICS_DATA.length - 1
+                  ? "1px solid var(--border)"
+                  : "none",
               textAlign: "center",
             }}
           >
@@ -73,8 +75,8 @@ export function Metrics() {
               style={{
                 fontSize: "clamp(36px, 4vw, 52px)",
                 fontWeight: 700,
-                fontFamily: "'JetBrains Mono', monospace",
-                color: "#333333",
+                fontFamily: "var(--font-mono), 'JetBrains Mono', monospace",
+                color: "var(--text-primary)",
                 lineHeight: 1,
                 marginBottom: "6px",
                 letterSpacing: "-1px",
@@ -109,14 +111,16 @@ export function Metrics() {
             <p
               style={{
                 fontSize: "13px",
-                color: "#9299AD",
+                color: "var(--text-secondary)",
                 marginBottom: "2px",
                 fontWeight: 500,
               }}
             >
               {m.label}
             </p>
-            <p style={{ fontSize: "12px", color: "#4A5068" }}>{m.sub}</p>
+            <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+              {m.sub}
+            </p>
           </div>
         ))}
       </div>
@@ -129,7 +133,7 @@ export function Metrics() {
           }
           .metrics-grid > div {
             border-right: none !important;
-            border-bottom: 1px solid #cccccc;
+            border-bottom: 1px solid var(--border);
             padding: 24px 16px !important;
           }
         }

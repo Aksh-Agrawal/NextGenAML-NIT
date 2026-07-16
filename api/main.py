@@ -76,13 +76,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
-origins = [
-    "https://nextgenaml-1.onrender.com",
-]
 # ── CORS ──────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.FRONTEND_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -118,7 +115,7 @@ app.include_router(timeline.router)
 app.include_router(upload.router)
 
 # ── Frontend static files ─────────────────────────────
-_frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+_frontend_dir = Path(__file__).resolve().parent.parent / "nextgen-frontend"
 app.mount("/static", StaticFiles(directory=str(_frontend_dir)), name="static")
 
 

@@ -6,7 +6,6 @@ import { TechStack } from "@/components/landing/TechStack";
 import { DemoPreview } from "@/components/landing/DemoPreview";
 import { Metrics } from "@/components/landing/Metrics";
 import { HowItWorks } from "@/components/landing/HowItWorks";
-import { Attribution } from "@/components/landing/Attribution";
 import { Footer } from "@/components/landing/Footer";
 
 export default function LandingPage() {
@@ -14,9 +13,9 @@ export default function LandingPage() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#FFFFFF",
-        color: "#333333",
-        fontFamily: "'Inter', system-ui, sans-serif",
+        background: "var(--bg-base)",
+        color: "var(--text-primary)",
+        fontFamily: "var(--font-inter), system-ui, sans-serif",
       }}
     >
       <Navbar />
@@ -41,9 +40,6 @@ export default function LandingPage() {
 
         {/* 7. Demo preview — browser mockup with 3 tabs */}
         <DemoPreview />
-
-        {/* 8. Attribution — team / logo */}
-        <Attribution />
       </main>
 
       <Footer />

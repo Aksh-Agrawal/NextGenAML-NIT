@@ -1,12 +1,12 @@
-'use client'
+"use client";
 
-import { motion } from 'framer-motion'
-import { HOW_IT_WORKS_STEPS } from '@/lib/landing-data'
+import { motion } from "framer-motion";
+import { HOW_IT_WORKS_STEPS } from "@/lib/landing-data";
 
 export function HowItWorks() {
   return (
     <section
-      style={{ padding: '100px 32px', maxWidth: '960px', margin: '0 auto' }}
+      style={{ padding: "100px 32px", maxWidth: "960px", margin: "0 auto" }}
     >
       {/* Heading */}
       <motion.div
@@ -14,26 +14,26 @@ export function HowItWorks() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.5 }}
-        style={{ textAlign: 'center', marginBottom: '72px' }}
+        style={{ textAlign: "center", marginBottom: "72px" }}
       >
         <p
           style={{
-            fontSize: '11px',
+            fontSize: "11px",
             fontFamily: "'JetBrains Mono', monospace",
-            color: '#FFB547',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            marginBottom: '12px',
+            color: "var(--accent-amber)",
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            marginBottom: "12px",
           }}
         >
           Pipeline
         </p>
         <h2
           style={{
-            fontSize: 'clamp(28px, 3.5vw, 42px)',
+            fontSize: "clamp(28px, 3.5vw, 42px)",
             fontWeight: 700,
-            color: '#333333',
-            letterSpacing: '-0.5px',
+            color: "var(--text-primary)",
+            letterSpacing: "-0.5px",
           }}
         >
           The intelligence pipeline
@@ -41,22 +41,22 @@ export function HowItWorks() {
       </motion.div>
 
       {/* Steps */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
         {HOW_IT_WORKS_STEPS.map((step, i) => {
-          const isLeft = i % 2 === 0
+          const isLeft = i % 2 === 0;
           return (
-            <div key={step.number} style={{ position: 'relative' }}>
+            <div key={step.number} style={{ position: "relative" }}>
               {/* Connecting line */}
               {i < HOW_IT_WORKS_STEPS.length - 1 && (
                 <div
                   style={{
-                    position: 'absolute',
-                    left: '50%',
-                    bottom: '-32px',
-                    width: '1px',
-                    height: '32px',
-                    background: '#CCCCCC',
-                    transform: 'translateX(-50%)',
+                    position: "absolute",
+                    left: "50%",
+                    bottom: "-32px",
+                    width: "1px",
+                    height: "32px",
+                    background: "var(--border)",
+                    transform: "translateX(-50%)",
                     zIndex: 0,
                   }}
                 />
@@ -68,38 +68,38 @@ export function HowItWorks() {
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                 style={{
-                  display: 'flex',
-                  flexDirection: isLeft ? 'row' : 'row-reverse',
-                  gap: '48px',
-                  alignItems: 'flex-start',
-                  marginBottom: '48px',
-                  position: 'relative',
+                  display: "flex",
+                  flexDirection: isLeft ? "row" : "row-reverse",
+                  gap: "48px",
+                  alignItems: "flex-start",
+                  marginBottom: "48px",
+                  position: "relative",
                   zIndex: 1,
                 }}
                 className="how-step"
               >
                 {/* Content side */}
-                <div style={{ flex: 1, paddingTop: '8px' }}>
+                <div style={{ flex: 1, paddingTop: "8px" }}>
                   <div
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      marginBottom: '12px',
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      marginBottom: "12px",
                     }}
                   >
                     <div
                       style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '8px',
-                        background: `${step.accent}20`,
-                        border: `1px solid ${step.accent}40`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '11px',
-                        fontFamily: 'monospace',
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "8px",
+                        background: `${step.accent}16`,
+                        border: `1px solid ${step.accent}38`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "11px",
+                        fontFamily: "monospace",
                         color: step.accent,
                         fontWeight: 700,
                         flexShrink: 0,
@@ -109,9 +109,9 @@ export function HowItWorks() {
                     </div>
                     <h3
                       style={{
-                        fontSize: '19px',
+                        fontSize: "19px",
                         fontWeight: 600,
-                        color: '#333333',
+                        color: "var(--text-primary)",
                         margin: 0,
                         lineHeight: 1.3,
                       }}
@@ -121,11 +121,11 @@ export function HowItWorks() {
                   </div>
                   <p
                     style={{
-                      fontSize: '14px',
-                      color: '#9299AD',
+                      fontSize: "14px",
+                      color: "var(--text-secondary)",
                       lineHeight: 1.7,
-                      marginBottom: '16px',
-                      maxWidth: '380px',
+                      marginBottom: "16px",
+                      maxWidth: "380px",
                     }}
                   >
                     {step.body}
@@ -134,14 +134,14 @@ export function HowItWorks() {
                   {/* Code block */}
                   <div
                     style={{
-                      background: '#FFFFFF',
-                      border: '1px solid #CCCCCC',
-                      borderRadius: '10px',
-                      padding: '12px 16px',
+                      background: "var(--bg-elevated)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "10px",
+                      padding: "12px 16px",
                       fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: '12px',
-                      color: '#c8ccd8',
-                      overflowX: 'auto',
+                      fontSize: "12px",
+                      color: "var(--text-muted)",
+                      overflowX: "auto",
                       borderLeft: `3px solid ${step.accent}50`,
                     }}
                   >
@@ -154,21 +154,21 @@ export function HowItWorks() {
                 <div
                   style={{
                     flexShrink: 0,
-                    width: '80px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    paddingTop: '4px',
+                    width: "80px",
+                    display: "flex",
+                    justifyContent: "center",
+                    paddingTop: "4px",
                   }}
                 >
                   <span
                     style={{
-                      fontSize: '72px',
+                      fontSize: "72px",
                       fontWeight: 100,
                       color: step.accent,
                       opacity: 0.15,
                       lineHeight: 1,
                       fontFamily: "'JetBrains Mono', monospace",
-                      userSelect: 'none',
+                      userSelect: "none",
                     }}
                   >
                     {step.number}
@@ -176,7 +176,7 @@ export function HowItWorks() {
                 </div>
               </motion.div>
             </div>
-          )
+          );
         })}
       </div>
 
@@ -192,5 +192,5 @@ export function HowItWorks() {
         }
       `}</style>
     </section>
-  )
+  );
 }

@@ -51,7 +51,11 @@ export function SidebarNav() {
       <Link
         href="/"
         className="flex items-center gap-3 px-4 py-5 border-b"
-        style={{ borderColor: "var(--border)", textDecoration: "none" }}
+        style={{
+          borderColor: "var(--border)",
+          textDecoration: "none",
+          background: "rgba(255,255,255,0.02)",
+        }}
       >
         <NeuralShieldIcon />
         <AnimatePresence>
@@ -69,6 +73,8 @@ export function SidebarNav() {
                   fontWeight: 700,
                   color: "var(--text-primary)",
                   letterSpacing: "-0.3px",
+                  fontFamily:
+                    "var(--font-heading), 'Plus Jakarta Sans', 'Inter', sans-serif",
                 }}
               >
                 NextGen
@@ -133,7 +139,7 @@ export function SidebarNav() {
         <div
           className="flex items-center gap-2 px-2 py-2 rounded-lg"
           style={{
-            background: "var(--bg-overlay)",
+            background: "rgba(255,255,255,0.03)",
             border: "1px solid var(--border)",
           }}
           title={
@@ -201,7 +207,7 @@ export function SidebarNav() {
           transform: "translateY(-50%)",
           borderRadius: "50%",
           background: "var(--bg-elevated)",
-          border: "1px solid var(--border-hover)",
+          border: "1px solid var(--border)",
           zIndex: 10,
           width: 24,
           height: 24,

@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import {
+  Inter,
+  JetBrains_Mono,
+  Plus_Jakarta_Sans,
+  Roboto_Mono,
+} from "next/font/google";
 import "../globals.css";
 
 const inter = Inter({
@@ -14,11 +19,23 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
+const robotoMono = Roboto_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title:
     "NextGenAML — Graph Neural Network AML Intelligence | Union Bank of India",
   description:
-    "Next-generation Anti-Money Laundering system powered by Graph Neural Networks. 93% precision, 12ms inference, detecting 5 AML typologies in real-time. Union Bank of India · Hackathon 2026.",
+    "Next-generation Anti-Money Laundering system powered by Graph Neural Networks. 93% precision, 12ms inference, detecting 5 AML typologies in real-time. .",
   keywords:
     "AML, Anti-Money Laundering, GNN, Graph Neural Network, LineMVGNN, Memgraph, Financial Crime Detection, Union Bank of India",
   openGraph: {
@@ -51,12 +68,12 @@ export default function LandingLayout({
     <html
       lang="en"
       style={{ scrollBehavior: "smooth" }}
-      className={`${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${plusJakartaSans.variable} ${robotoMono.variable}`}
     >
       <body
         style={{
-          background: "#FFFFFF",
-          color: "#333333",
+          background: "var(--bg-base)",
+          color: "var(--text-primary)",
           fontFamily: "var(--font-inter), system-ui, sans-serif",
           overflowX: "hidden",
           margin: 0,

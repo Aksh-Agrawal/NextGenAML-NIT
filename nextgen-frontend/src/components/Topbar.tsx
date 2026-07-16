@@ -62,11 +62,19 @@ export function Topbar() {
     >
       {/* Breadcrumb */}
       <div className="flex items-center gap-2">
-        <span style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.8)" }}>
+        <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
           NextGenAML
         </span>
-        <ChevronRight size={13} style={{ color: "rgba(255, 255, 255, 0.4)" }} />
-        <span style={{ fontSize: 14, fontWeight: 600, color: "#FFFFFF" }}>
+        <ChevronRight size={13} style={{ color: "var(--text-muted)" }} />
+        <span
+          style={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: "var(--text-primary)",
+            fontFamily:
+              "var(--font-heading), 'Plus Jakarta Sans', 'Inter', sans-serif",
+          }}
+        >
           {title}
         </span>
       </div>
@@ -76,22 +84,33 @@ export function Topbar() {
         {/* System Health */}
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-          style={{ background: "#FFFFFF", border: "1px solid #FFFFFF" }}
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid var(--border)",
+          }}
         >
           <div
             className="status-dot"
             style={{
-              background: health?.status === "ok" ? "#28A745" : "#DA251C",
+              background:
+                health?.status === "ok"
+                  ? "var(--accent-green)"
+                  : "var(--accent-red)",
               boxShadow:
-                health?.status === "ok" ? "0 0 6px #28A745" : "0 0 6px #DA251C",
+                health?.status === "ok"
+                  ? "0 0 6px var(--accent-green)"
+                  : "0 0 6px var(--accent-red)",
               animation: "dot-blink 2s ease-in-out infinite",
             }}
           />
           <span
             style={{
               fontSize: 11,
-              color: health?.status === "ok" ? "#28A745" : "#DA251C",
-              fontFamily: "JetBrains Mono, monospace",
+              color:
+                health?.status === "ok"
+                  ? "var(--accent-green)"
+                  : "var(--accent-red)",
+              fontFamily: "Roboto Mono, JetBrains Mono, monospace",
             }}
           >
             {health?.status === "ok" ? "SYSTEM ONLINE" : "CHECKING..."}
@@ -107,13 +126,15 @@ export function Topbar() {
               padding: "6px 10px",
               gap: 6,
               fontSize: 12,
-              background: "rgba(255,255,255,0.1)",
+              background: "rgba(255,255,255,0.05)",
               color: "#FFFFFF",
             }}
             onClick={() => setShowThreshold(!showThreshold)}
           >
             <Sliders size={13} color="#FFFFFF" />
-            <span style={{ fontFamily: "JetBrains Mono, monospace" }}>
+            <span
+              style={{ fontFamily: "Roboto Mono, JetBrains Mono, monospace" }}
+            >
               {(threshold * 100).toFixed(0)}%
             </span>
           </button>
@@ -130,8 +151,8 @@ export function Topbar() {
                   marginTop: 8,
                   padding: 16,
                   background: "var(--bg-overlay)",
-                  border: "1px solid var(--border-hover)",
-                  borderRadius: 10,
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
                   width: 220,
                   zIndex: 100,
                 }}
@@ -162,7 +183,7 @@ export function Topbar() {
                     fontSize: 11,
                     color: "var(--text-muted)",
                     marginTop: 4,
-                    fontFamily: "JetBrains Mono, monospace",
+                    fontFamily: "Roboto Mono, JetBrains Mono, monospace",
                   }}
                 >
                   <span>10%</span>
@@ -187,7 +208,7 @@ export function Topbar() {
             style={{
               position: "relative",
               padding: 8,
-              background: "rgba(255,255,255,0.1)",
+              background: "rgba(255,255,255,0.05)",
               color: "#FFFFFF",
             }}
           >
@@ -209,7 +230,7 @@ export function Topbar() {
                   alignItems: "center",
                   justifyContent: "center",
                   padding: "0 3px",
-                  fontFamily: "JetBrains Mono, monospace",
+                  fontFamily: "Roboto Mono, JetBrains Mono, monospace",
                 }}
               >
                 {alerts.length > 99 ? "99+" : alerts.length}
@@ -232,11 +253,11 @@ export function Topbar() {
                   width: 360,
                   maxHeight: 400,
                   background: "var(--bg-overlay)",
-                  border: "1px solid var(--border-hover)",
+                  border: "1px solid var(--border)",
                   borderRadius: 12,
                   overflow: "hidden",
                   zIndex: 100,
-                  boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
                 }}
               >
                 <div
@@ -252,7 +273,7 @@ export function Topbar() {
                         marginLeft: 8,
                         fontSize: 11,
                         color: "var(--text-muted)",
-                        fontFamily: "JetBrains Mono, monospace",
+                        fontFamily: "Roboto Mono, JetBrains Mono, monospace",
                       }}
                     >
                       {criticalCount} CRITICAL
@@ -268,7 +289,10 @@ export function Topbar() {
                 </div>
                 <div style={{ overflowY: "auto", maxHeight: 340 }}>
                   {alerts.slice(0, 10).map((alert, i) => (
-                    <div key={alert.account_id + i} className="alert-entry">
+                    <div
+                      key={alert.account_id + i}
+                      className={`alert-entry ${i === 0 ? "slide-in-row" : ""}`}
+                    >
                       <div
                         className="status-dot"
                         style={{
@@ -304,12 +328,12 @@ export function Topbar() {
                         </div>
                       </div>
                       <span
-                        className={`risk-badge risk-badge-${
+                        className={`soft-tag ${
                           alert.risk_score >= 75
-                            ? "critical"
+                            ? "soft-tag-high"
                             : alert.risk_score >= 50
-                              ? "high"
-                              : "medium"
+                              ? "soft-tag-medium"
+                              : "soft-tag-low"
                         }`}
                       >
                         {alert.risk_score.toFixed(0)}
@@ -341,8 +365,8 @@ export function Topbar() {
             width: 32,
             height: 32,
             borderRadius: "50%",
-            background: "#00579C",
-            border: "2px solid #DA251C",
+            background: "linear-gradient(135deg, #00e5ff, #2979ff)",
+            border: "1px solid rgba(255,255,255,0.18)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

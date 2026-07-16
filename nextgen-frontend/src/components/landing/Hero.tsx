@@ -102,7 +102,7 @@ function HeroGraph() {
     ];
 
     function drawDotGrid() {
-      ctx!.fillStyle = "rgba(0,87,156,0.08)";
+      ctx!.fillStyle = "rgba(0,229,255,0.08)";
       for (let x = 15; x < W; x += 30) {
         for (let y = 15; y < H; y += 30) {
           ctx!.beginPath();
@@ -139,8 +139,8 @@ function HeroGraph() {
       const y = na.y + (nb.y - na.y) * progress;
       ctx!.beginPath();
       ctx!.arc(x, y, 3.5, 0, Math.PI * 2);
-      ctx!.fillStyle = "#DA251C";
-      ctx!.shadowColor = "#DA251C";
+      ctx!.fillStyle = "#FF3D71";
+      ctx!.shadowColor = "#FF3D71";
       ctx!.shadowBlur = 12;
       ctx!.fill();
       ctx!.shadowBlur = 0;
@@ -172,16 +172,16 @@ function HeroGraph() {
       drawDotGrid();
 
       // Grey edges
-      for (const [a, b] of GREY_EDGES) drawEdge(a, b, "#9299AD", 0.18, 1);
+      for (const [a, b] of GREY_EDGES) drawEdge(a, b, "#7f8aa3", 0.18, 1);
 
       // Red edges
       for (const [a, b] of RED_EDGES) {
-        drawEdge(a, b, "#DA251C", 0.8, 1.5);
+        drawEdge(a, b, "#FF3D71", 0.8, 1.5);
         // Glow pass
         ctx!.beginPath();
         ctx!.moveTo(nodes[a].x, nodes[a].y);
         ctx!.lineTo(nodes[b].x, nodes[b].y);
-        ctx!.strokeStyle = "#DA251C";
+        ctx!.strokeStyle = "#FF3D71";
         ctx!.globalAlpha = 0.15;
         ctx!.lineWidth = 6;
         ctx!.stroke();
@@ -192,7 +192,7 @@ function HeroGraph() {
       // Amber flash edge
       if (amberRef.current.edge >= 0 && amberRef.current.opacity > 0) {
         const [a, b] = amberEdges[amberRef.current.edge];
-        drawEdge(a, b, "#FFB547", amberRef.current.opacity * 0.9, 1.5);
+        drawEdge(a, b, "#FFAA00", amberRef.current.opacity * 0.9, 1.5);
       }
 
       // Travelling dot
@@ -210,7 +210,7 @@ function HeroGraph() {
           const ringR = n.r + 4 + pulse * 8;
           ctx!.beginPath();
           ctx!.arc(n.x, n.y, ringR, 0, Math.PI * 2);
-          ctx!.strokeStyle = "#DA251C";
+          ctx!.strokeStyle = "#FF3D71";
           ctx!.globalAlpha = (1 - pulse) * 0.6;
           ctx!.lineWidth = 1.5;
           ctx!.stroke();
@@ -222,13 +222,13 @@ function HeroGraph() {
         ctx!.arc(n.x, n.y, n.r, 0, Math.PI * 2);
         if (isFlagged) {
           const grad = ctx!.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
-          grad.addColorStop(0, "rgba(218,37,28,0.9)");
-          grad.addColorStop(1, "rgba(218,37,28,0.4)");
+          grad.addColorStop(0, "rgba(255,61,113,0.95)");
+          grad.addColorStop(1, "rgba(255,61,113,0.35)");
           ctx!.fillStyle = grad;
-          ctx!.shadowColor = "#DA251C";
-          ctx!.shadowBlur = 12;
+          ctx!.shadowColor = "#FF3D71";
+          ctx!.shadowBlur = 14;
         } else {
-          ctx!.fillStyle = "#F8FAFC";
+          ctx!.fillStyle = "#D6E4FF";
           ctx!.shadowBlur = 0;
         }
         ctx!.fill();
@@ -238,8 +238,8 @@ function HeroGraph() {
         ctx!.beginPath();
         ctx!.arc(n.x, n.y, n.r, 0, Math.PI * 2);
         ctx!.strokeStyle = isFlagged
-          ? "rgba(218,37,28,0.8)"
-          : "rgba(0,63,122,0.3)";
+          ? "rgba(255,61,113,0.85)"
+          : "rgba(0,229,255,0.28)";
         ctx!.lineWidth = isFlagged ? 1.5 : 1;
         ctx!.stroke();
       });
@@ -355,13 +355,13 @@ export function Hero() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "8px",
-                background: "rgba(218,37,28,0.12)",
-                border: "1px solid rgba(218,37,28,0.3)",
+                background: "rgba(255,61,113,0.1)",
+                border: "1px solid rgba(255,61,113,0.24)",
                 borderRadius: "999px",
                 padding: "5px 14px",
                 fontSize: "11px",
-                color: "#DA251C",
-                fontFamily: "'JetBrains Mono', monospace",
+                color: "var(--accent-red)",
+                fontFamily: "var(--font-mono), 'JetBrains Mono', monospace",
                 letterSpacing: "0.3px",
               }}
             >
@@ -387,15 +387,17 @@ export function Hero() {
             variants={fadeUp}
             style={{
               fontSize: "clamp(40px, 5vw, 68px)",
-              fontWeight: 700,
+              fontWeight: 800,
               lineHeight: 1.05,
               letterSpacing: "-1.5px",
               background:
-                "linear-gradient(135deg, #333333 0%, #003F7A 55%, #00579C 100%)",
+                "linear-gradient(135deg, #f4f7fb 0%, #00e5ff 52%, #2979ff 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
               margin: 0,
+              fontFamily:
+                "var(--font-heading), 'Plus Jakarta Sans', 'Inter', sans-serif",
             }}
           >
             Next-Generation
@@ -411,7 +413,7 @@ export function Hero() {
             variants={fadeUp}
             style={{
               fontSize: "18px",
-              color: "#9299AD",
+              color: "var(--text-secondary)",
               maxWidth: "480px",
               lineHeight: 1.65,
               margin: 0,
@@ -430,9 +432,9 @@ export function Hero() {
             style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}
           >
             {[
-              { value: "93%", label: "Precision", color: "#DA251C" },
-              { value: "12ms", label: "Inference", color: "#00579C" },
-              { value: "5", label: "AML Typologies", color: "#003F7A" },
+              { value: "93%", label: "Precision", color: "#FF3D71" },
+              { value: "12ms", label: "Inference", color: "#00E5FF" },
+              { value: "5", label: "AML Typologies", color: "#8B5CF6" },
             ].map((s) => (
               <div
                 key={s.label}
@@ -440,13 +442,13 @@ export function Hero() {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "7px",
-                  background: "#F8FAFC",
-                  border: "1px solid #CCCCCC",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid var(--border)",
                   borderRadius: "999px",
                   padding: "5px 14px",
                   fontSize: "12px",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  color: "#333333",
+                  fontFamily: "var(--font-mono), 'JetBrains Mono', monospace",
+                  color: "var(--text-primary)",
                   whiteSpace: "nowrap",
                 }}
               >
@@ -457,13 +459,15 @@ export function Hero() {
                     borderRadius: "50%",
                     background: s.color,
                     flexShrink: 0,
-                    boxShadow: `0 0 6px ${s.color}`,
+                    boxShadow: `0 0 8px ${s.color}`,
                   }}
                 />
                 <span style={{ color: s.color, fontWeight: 600 }}>
                   {s.value}
                 </span>
-                <span style={{ color: "#9299AD" }}>{s.label}</span>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  {s.label}
+                </span>
               </div>
             ))}
           </motion.div>
@@ -487,14 +491,14 @@ export function Hero() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "8px",
-                background: "#00579C",
+                background: "linear-gradient(135deg, #00e5ff 0%, #2979ff 100%)",
                 color: "white",
-                borderRadius: "10px",
+                borderRadius: "12px",
                 padding: "13px 26px",
                 fontSize: "15px",
                 fontWeight: 600,
                 textDecoration: "none",
-                boxShadow: "0 0 24px rgba(0,87,156,0.3)",
+                boxShadow: "0 0 24px rgba(0,229,255,0.22)",
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
@@ -524,9 +528,9 @@ export function Hero() {
                 alignItems: "center",
                 gap: "8px",
                 background: "transparent",
-                color: "#9299AD",
-                border: "1px solid #CCCCCC",
-                borderRadius: "10px",
+                color: "var(--text-secondary)",
+                border: "1px solid var(--border)",
+                borderRadius: "12px",
                 padding: "13px 26px",
                 fontSize: "15px",
                 fontWeight: 500,
@@ -534,12 +538,12 @@ export function Hero() {
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#F8FAFC";
-                e.currentTarget.style.color = "#333333";
+                e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                e.currentTarget.style.color = "var(--text-primary)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "#9299AD";
+                e.currentTarget.style.color = "var(--text-secondary)";
               }}
             >
               View Architecture
@@ -557,16 +561,27 @@ export function Hero() {
           <div
             style={{
               position: "relative",
-              background: "#0F1117",
-              border: "1px solid #CCCCCC",
-              borderRadius: "20px",
+              background:
+                "linear-gradient(180deg, rgba(16,23,35,0.96), rgba(11,15,25,0.98))",
+              border: "1px solid var(--border)",
+              borderRadius: "16px",
               overflow: "hidden",
               boxShadow:
-                "inset 0 0 60px rgba(0,63,122,0.04), 0 0 80px rgba(0,87,156,0.06)",
+                "inset 0 0 60px rgba(0,229,255,0.04), 0 0 80px rgba(0,229,255,0.05)",
               aspectRatio: "480/420",
             }}
           >
             {mounted && <HeroGraph />}
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(180deg, rgba(11,15,25,0.12), rgba(11,15,25,0.44)), radial-gradient(circle at top, rgba(0,229,255,0.12), transparent 45%)",
+                pointerEvents: "none",
+              }}
+            />
 
             {/* Overlay badges */}
             <div
@@ -574,13 +589,13 @@ export function Hero() {
                 position: "absolute",
                 top: "12px",
                 left: "12px",
-                background: "rgba(0,63,122,0.12)",
-                border: "1px solid rgba(0,63,122,0.25)",
+                background: "rgba(0,229,255,0.08)",
+                border: "1px solid rgba(0,229,255,0.18)",
                 borderRadius: "6px",
                 padding: "4px 10px",
                 fontSize: "10px",
-                color: "#003F7A",
-                fontFamily: "'JetBrains Mono', monospace",
+                color: "var(--accent-blue)",
+                fontFamily: "var(--font-mono), 'JetBrains Mono', monospace",
               }}
             >
               LineMVGNN v2.0
@@ -593,13 +608,13 @@ export function Hero() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "6px",
-                background: "rgba(218,37,28,0.12)",
-                border: "1px solid rgba(218,37,28,0.25)",
+                background: "rgba(255,61,113,0.1)",
+                border: "1px solid rgba(255,61,113,0.24)",
                 borderRadius: "6px",
                 padding: "4px 10px",
                 fontSize: "10px",
-                color: "#DA251C",
-                fontFamily: "'JetBrains Mono', monospace",
+                color: "var(--accent-red)",
+                fontFamily: "var(--font-mono), 'JetBrains Mono', monospace",
               }}
             >
               <span
@@ -607,7 +622,7 @@ export function Hero() {
                   width: "6px",
                   height: "6px",
                   borderRadius: "50%",
-                  background: "#DA251C",
+                  background: "#FF3D71",
                   animation: "dotBlink 1.5s ease-in-out infinite",
                 }}
               />
@@ -620,8 +635,8 @@ export function Hero() {
                 left: "50%",
                 transform: "translateX(-50%)",
                 fontSize: "9px",
-                color: "#4A5068",
-                fontFamily: "'JetBrains Mono', monospace",
+                color: "var(--text-muted)",
+                fontFamily: "var(--font-mono), 'JetBrains Mono', monospace",
                 whiteSpace: "nowrap",
               }}
             >

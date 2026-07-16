@@ -20,8 +20,8 @@ const ShieldLogo = () => (
         y2="48"
         gradientUnits="userSpaceOnUse"
       >
-        <stop offset="0%" stopColor="#FFFFFF" />
-        <stop offset="100%" stopColor="#FFFFFF" />
+        <stop offset="0%" stopColor="#00E5FF" />
+        <stop offset="100%" stopColor="#2979FF" />
       </linearGradient>
     </defs>
     {/* Shield path */}
@@ -118,11 +118,13 @@ export function Navbar() {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 32px",
-          background: "#00579C",
-          backdropFilter: "none",
-          WebkitBackdropFilter: "none",
-          borderBottom: "1px solid #003F7A",
-          boxShadow: scrolled ? "0 2px 10px rgba(0,0,0,0.1)" : "none",
+          background: scrolled
+            ? "rgba(11, 15, 25, 0.92)"
+            : "rgba(11, 15, 25, 0.82)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          borderBottom: "1px solid var(--border)",
+          boxShadow: scrolled ? "0 10px 30px rgba(0,0,0,0.25)" : "none",
           transition: "box-shadow 0.3s ease",
         }}
       >
@@ -142,9 +144,11 @@ export function Navbar() {
               style={{
                 fontSize: "16px",
                 fontWeight: 700,
-                color: "#FFFFFF",
+                color: "var(--text-primary)",
                 letterSpacing: "-0.3px",
                 lineHeight: 1,
+                fontFamily:
+                  "var(--font-heading), 'Plus Jakarta Sans', 'Inter', sans-serif",
               }}
             >
               NextGenAML
@@ -152,14 +156,12 @@ export function Navbar() {
             <span
               style={{
                 fontSize: "10px",
-                color: "rgba(255,255,255,0.7)",
-                fontFamily: "'JetBrains Mono', monospace",
+                color: "var(--text-muted)",
+                fontFamily: "var(--font-mono), 'JetBrains Mono', monospace",
                 letterSpacing: "0.2px",
                 lineHeight: 1,
               }}
-            >
-              Union Bank of India · Hackathon 2026
-            </span>
+            ></span>
           </div>
         </a>
 
@@ -174,15 +176,17 @@ export function Navbar() {
               href={link.href}
               style={{
                 fontSize: "13px",
-                color: "rgba(255,255,255,0.7)",
+                color: "var(--text-secondary)",
                 textDecoration: "none",
                 fontWeight: 500,
                 transition: "color 0.2s ease",
                 position: "relative",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#FFFFFF")}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.color = "var(--text-primary)")
+              }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "rgba(255,255,255,0.7)")
+                (e.currentTarget.style.color = "var(--text-secondary)")
               }
             >
               {link.label}
@@ -193,21 +197,19 @@ export function Navbar() {
             href="/dashboard"
             style={{
               fontSize: "13px",
-              color: "#FFFFFF",
-              border: "1px solid #DA251C",
-              borderRadius: "6px",
+              color: "#0B0F19",
+              border: "1px solid rgba(0,229,255,0.35)",
+              borderRadius: "12px",
               padding: "6px 16px",
               textDecoration: "none",
               transition: "all 0.2s ease",
-              background: "#DA251C",
+              background: "linear-gradient(135deg, #00e5ff 0%, #2979ff 100%)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#B01E17";
-              e.currentTarget.style.borderColor = "#B01E17";
+              e.currentTarget.style.filter = "brightness(1.08)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#DA251C";
-              e.currentTarget.style.borderColor = "#DA251C";
+              e.currentTarget.style.filter = "brightness(1)";
             }}
           >
             View Demo
@@ -222,7 +224,7 @@ export function Navbar() {
             display: "none",
             background: "none",
             border: "none",
-            color: "#333333",
+            color: "var(--text-primary)",
             cursor: "pointer",
             padding: "8px",
           }}
@@ -255,7 +257,7 @@ export function Navbar() {
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(255,255,255,0.98)",
+            background: "rgba(11, 15, 25, 0.98)",
             backdropFilter: "blur(16px)",
             zIndex: 49,
             display: "flex",
@@ -271,11 +273,11 @@ export function Navbar() {
               onClick={() => setMobileOpen(false)}
               style={{
                 fontSize: "20px",
-                color: "#333333",
+                color: "var(--text-primary)",
                 textDecoration: "none",
                 fontWeight: 500,
                 padding: "12px 0",
-                borderBottom: "1px solid #CCCCCC",
+                borderBottom: "1px solid var(--border)",
               }}
             >
               {link.label}
@@ -286,13 +288,14 @@ export function Navbar() {
             onClick={() => setMobileOpen(false)}
             style={{
               fontSize: "16px",
-              color: "#FFFFFF",
-              border: "1px solid rgba(0,87,156,0.4)",
-              borderRadius: "8px",
+              color: "#0B0F19",
+              border: "1px solid rgba(0,229,255,0.35)",
+              borderRadius: "12px",
               padding: "12px 20px",
               textDecoration: "none",
               textAlign: "center",
               marginTop: "8px",
+              background: "linear-gradient(135deg, #00e5ff 0%, #2979ff 100%)",
             }}
           >
             View Demo

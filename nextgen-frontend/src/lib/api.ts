@@ -3,7 +3,8 @@
  * All data fetching functions connecting to the FastAPI backend.
  */
 
-export const API_BASE = "https://nextgenaml.onrender.com";
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8089";
 
 // ── Types ──────────────────────────────────────────────
 

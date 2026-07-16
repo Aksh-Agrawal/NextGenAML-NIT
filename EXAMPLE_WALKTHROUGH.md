@@ -18,20 +18,22 @@ python ingestion/ingest_amlsim.py --csv_path data/HI-Small_Trans.csv
 
 **Input CSV:**
 
-| Timestamp | From Account | To Account | Amount Paid | Currency | Is Laundering |
-|---|---|---|---|---|---|
-| 2025-01-15 02:30 | ACCT-8921 | ACCT-4512 | 9,800 | USD | 1 |
-| 2025-01-15 02:45 | ACCT-4512 | ACCT-9910 | 9,500 | USD | 1 |
-| 2025-01-15 03:00 | ACCT-9910 | ACCT-7731 | 9,200 | USD | 1 |
-| 2025-01-15 03:15 | ACCT-7731 | ACCT-8921 | 8,900 | USD | 1 |
+| Timestamp        | From Account | To Account | Amount Paid | Currency | Is Laundering |
+| ---------------- | ------------ | ---------- | ----------- | -------- | ------------- |
+| 2025-01-15 02:30 | ACCT-8921    | ACCT-4512  | 9,800       | USD      | 1             |
+| 2025-01-15 02:45 | ACCT-4512    | ACCT-9910  | 9,500       | USD      | 1             |
+| 2025-01-15 03:00 | ACCT-9910    | ACCT-7731  | 9,200       | USD      | 1             |
+| 2025-01-15 03:15 | ACCT-7731    | ACCT-8921  | 8,900       | USD      | 1             |
 
 **What the program does:**
+
 1. **Feature Engineering** – log-normalizes amounts, encodes `02:30 AM` as `(sin=−0.97, cos=0.26)`,
    flags `is_round_amount=0.0`, computes `velocity_24h=0.84`
 2. **Memgraph Ingestion** – creates 5 `Account` nodes + `TRANSACTION` edges with all features
 3. **O(1) Index** – `CREATE INDEX ON :Account(id)` for instant lookup
 
 **Console output:**
+
 ```
 ✅ Memgraph is ready.
 ✅ Schema and indices created.
@@ -54,11 +56,13 @@ The analyst selects **`ACCT-8921`** from the dropdown.
 ## Step 3 — Fund Flow Graph Rendering
 
 Dashboard calls:
+
 ```
-GET http://localhost:8000/subgraph/ACCT-8921?hops=2&limit=120
+GET http://localhost:8089/subgraph/ACCT-8921?hops=2&limit=120
 ```
 
 **Memgraph Cypher Query (inside FastAPI):**
+
 ```cypher
 MATCH path = (center:Account {id: "ACCT-8921"})-[:TRANSACTION*1..2]-(neighbor)
 UNWIND relationships(path) AS e
@@ -88,6 +92,7 @@ LineMVGNN Steps:
 ```
 
 **Attention weights returned to Streamlit:**
+
 ```json
 {
   "ACCT-8921->ACCT-4512": 0.931,
@@ -101,6 +106,7 @@ LineMVGNN Steps:
 Center node `ACCT-8921` shown as a ⭐ blue star.
 
 **Dashboard KPIs:**
+
 ```
 Risk Score:    93.0%   [CRITICAL]
 Confidence:    86.0%
@@ -114,10 +120,11 @@ Inference:     12 ms
 Analyst clicks **"🔁 Circular Transactions"**:
 
 ```
-GET http://localhost:8000/patterns/circular
+GET http://localhost:8089/patterns/circular
 ```
 
 **Cypher inside Memgraph:**
+
 ```cypher
 MATCH p=(a:Account)-[:TRANSACTION*3..6]->(a)
 WHERE ALL(r IN relationships(p) WHERE r.amount > 0)
@@ -127,6 +134,7 @@ RETURN [n IN nodes(p) | n.id] AS account_chain,
 ```
 
 **Dashboard output:**
+
 ```
 Cycle #1 | Length: 4 nodes | Total Flow: $37,400
 🔴 ACCT-8921 → ACCT-4512 → ACCT-9910 → ACCT-7731 → ACCT-8921
@@ -139,27 +147,45 @@ Cycle #1 | Length: 4 nodes | Total Flow: $37,400
 Analyst clicks **"📄 Generate FIU-IND SAR Report"** in the sidebar.
 
 **LangChain sends to Gemini 2.0 Flash:**
+
 ```json
 {
-  "subject_account": { "account_id": "ACCT-8921", "risk_level": "CRITICAL", "fraud_prob": 0.93 },
-  "transaction_summary": { "flagged_edges": 4, "total_flagged_amount_usd": 37400 },
-  "circular_patterns": [{
-    "accounts": ["ACCT-8921","ACCT-4512","ACCT-9910","ACCT-7731","ACCT-8921"],
-    "total_flow": 37400
-  }],
+  "subject_account": {
+    "account_id": "ACCT-8921",
+    "risk_level": "CRITICAL",
+    "fraud_prob": 0.93
+  },
+  "transaction_summary": {
+    "flagged_edges": 4,
+    "total_flagged_amount_usd": 37400
+  },
+  "circular_patterns": [
+    {
+      "accounts": [
+        "ACCT-8921",
+        "ACCT-4512",
+        "ACCT-9910",
+        "ACCT-7731",
+        "ACCT-8921"
+      ],
+      "total_flow": 37400
+    }
+  ],
   "aml_typologies": ["Rapid Layering", "Circular Round-Trip", "Structuring"]
 }
 ```
 
 **Gemini Output — SAR Narrative:**
-> *"Account ACCT-8921 has been flagged by the LineMVGNN model with a fraud probability of 93.0%
+
+> _"Account ACCT-8921 has been flagged by the LineMVGNN model with a fraud probability of 93.0%
 > (CRITICAL). The GNN analysis identified a closed circular transaction loop involving 4 accounts
 > with a total fund flow of USD 37,400. All transactions occurred between 02:30–03:15 AM IST,
 > consistent with off-hours structuring. Individual transaction amounts ($8,900–$9,800) are
 > deliberately maintained below the $10,000 mandatory reporting threshold.
-> Recommend immediate account freeze and STR filing with FIU-IND within 7 days."*
+> Recommend immediate account freeze and STR filing with FIU-IND within 7 days."_
 
 **Gemini Output — FIU-IND ARF/TRF XML:**
+
 ```xml
 <FINGateCTRData>
   <ReportingEntity>
@@ -198,7 +224,7 @@ Analyst clicks **"👍 Confirm Alert"** → logged to `logs/feedback_log.csv` fo
    Feature Engineering (log-norm, cyclic time, structuring flags)
    → Memgraph: 5 Account nodes + 4 TRANSACTION edges + O(1) indices
        ↓
- [Streamlit Dashboard]  ←→  [FastAPI :8000]
+ [Streamlit Dashboard]  ←→  [FastAPI :8089]
    Analyst selects ACCT-8921
    GET /subgraph/ACCT-8921 → Cypher ego-subgraph
        ↓

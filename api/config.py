@@ -15,7 +15,7 @@ class Settings:
 
     # --- FastAPI ---
     API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
-    API_PORT: int = int(os.getenv("API_PORT", "8000"))
+    API_PORT: int = int(os.getenv("API_PORT", "8089"))
     API_SECRET_TOKEN: str = os.getenv("API_SECRET_TOKEN", "changeme_in_production")
 
     # --- GNN Model ---

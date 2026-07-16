@@ -20,9 +20,9 @@ timeout /t 10 /nobreak > nul
 
 echo.
 echo [2/4] Starting FastAPI backend...
-start /b cmd /c "python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --log-level info > logs\api.log 2>&1"
-echo        API will be available at http://localhost:8000
-echo        Swagger UI:              http://localhost:8000/docs
+start /b cmd /c "python -m uvicorn api.main:app --host 0.0.0.0 --port 8089 --log-level info > logs\api.log 2>&1"
+echo        API will be available at http://localhost:8089
+echo        Swagger UI:              http://localhost:8089/docs
 timeout /t 3 /nobreak > nul
 
 echo.
@@ -39,8 +39,8 @@ echo.
 echo ========================================================
 echo  System is running!
 echo  - Dashboard:  http://localhost:8501
-echo  - API:        http://localhost:8000
-echo  - API Docs:   http://localhost:8000/docs
+echo  - API:        http://localhost:8089
+echo  - API Docs:   http://localhost:8089/docs
 echo  - Memgraph:   http://localhost:3000  (Lab UI)
 echo ========================================================
 echo.
