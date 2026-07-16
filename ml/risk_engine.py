@@ -28,10 +28,13 @@ class RiskEngine:
         self.inference = inference
         self._pattern_accounts: set[str] = set()
         self._patterns_computed = False
+        self._all_scores_cache: list[dict] | None = None
 
     def compute_patterns(self):
         """Pre-compute pattern detection results."""
         self._account_pattern_type: dict[str, str] = {}
+        self._pattern_accounts = set()
+        self._patterns_computed = False
 
         cycles = self.gm.detect_circular_patterns()
         for c in cycles:
@@ -53,6 +56,12 @@ class RiskEngine:
                 self._account_pattern_type[d["account_id"]] = "Dormant Activation"
 
         self._patterns_computed = True
+        self._all_scores_cache = None
+
+    def refresh_scores(self) -> list[dict]:
+        """Compute and cache the current score list once."""
+        self._all_scores_cache = [self.score_account(acc) for acc in self.gm.get_all_accounts()]
+        return self._all_scores_cache
 
     def score_account(self, account_id: str) -> dict:
         """Compute final risk score for an account."""
@@ -107,7 +116,9 @@ class RiskEngine:
 
     def score_all(self) -> list[dict]:
         """Score every account in the graph."""
-        return [self.score_account(acc) for acc in self.gm.get_all_accounts()]
+        if self._all_scores_cache is None:
+            return self.refresh_scores()
+        return self._all_scores_cache
 
     def _compute_anomaly(self, account_id: str) -> float:
         """Heuristic anomaly score based on velocity and amount stats."""

@@ -28,6 +28,9 @@ class GraphManager:
         self._df: Optional[pd.DataFrame] = None
         self._account_features: dict[str, dict] = {}
         self._neo4j_driver = None
+        self._circular_cache: dict[tuple[int, int, int], list[dict]] = {}
+        self._structuring_cache: dict[tuple[float, float], list[dict]] = {}
+        self._dormant_cache: dict[int, list[dict]] = {}
 
     # ── Data Loading ───────────────────────────────────
     def load_from_csv(self, csv_path: str) -> int:
@@ -41,6 +44,9 @@ class GraphManager:
         else:
             df["label"] = 0
         self._df = df.sort_values("timestamp").reset_index(drop=True)
+        self._circular_cache.clear()
+        self._structuring_cache.clear()
+        self._dormant_cache.clear()
         self._build_graph()
         self._compute_account_features()
         logger.info(
@@ -253,6 +259,11 @@ class GraphManager:
         *limit* caps the number of cycles returned to avoid exhaustive
         enumeration on dense graphs.
         """
+        cache_key = (min_length, max_length, limit)
+        cached = self._circular_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         cycles = []
         checked = 0
         max_checked = 200_000  # stop iterating after this many raw cycles
@@ -278,6 +289,7 @@ class GraphManager:
                         break
         except Exception as e:
             logger.warning(f"Cycle detection error: {e}")
+        self._circular_cache[cache_key] = cycles
         return cycles
 
     def detect_structuring(self, threshold: float = 0, window_minutes: float = 60) -> list[dict]:
@@ -293,6 +305,11 @@ class GraphManager:
             [threshold] if threshold > 0
             else [10_000, 50_000, 200_000, 500_000, 1_000_000]
         )
+        cache_key = (float(threshold), float(window_minutes))
+        cached = self._structuring_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         results = []
         seen: set[str] = set()
         for sender in df["sender_account"].unique():
@@ -317,12 +334,17 @@ class GraphManager:
                             "avg_amount": float(below["amount"].mean()),
                             "time_window_minutes": round(time_span, 2),
                         })
+        self._structuring_cache[cache_key] = results
         return results
 
     def detect_dormant_activations(self, dormant_days: int = 30) -> list[dict]:
         """Find accounts that were dormant then suddenly became active."""
         if self._df is None:
             return []
+        cached = self._dormant_cache.get(dormant_days)
+        if cached is not None:
+            return cached
+
         df = self._df
         results = []
         all_accounts = set(df["sender_account"]) | set(df["receiver_account"])
@@ -343,7 +365,8 @@ class GraphManager:
                     "activation_amount": float(activation_row["amount"]),
                     "activation_date": str(activation_row["timestamp"]),
                 })
-        return results
+            self._dormant_cache[dormant_days] = results
+            return results
 
     def get_stats(self) -> dict:
         """Return summary statistics about the graph."""

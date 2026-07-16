@@ -60,6 +60,7 @@ async def lifespan(app: FastAPI):
 
     # 4. Pre-compute pattern detection
     risk_engine.compute_patterns()
+    risk_engine.refresh_scores()
 
     logger.info("NextGenAML API ready!")
     logger.info("=" * 60)
