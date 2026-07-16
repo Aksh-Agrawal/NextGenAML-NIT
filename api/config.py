@@ -37,15 +37,16 @@ class Settings:
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
 
     # --- CORS ---
-    FRONTEND_ORIGINS: list = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-        "https://nextgenaml.onrender.com",
-        "https://nextgenaml-1.onrender.com"
+    FRONTEND_ORIGINS: list[str] = [
+        origin.strip()
+        for origin in os.getenv(
+            "FRONTEND_ORIGINS",
+            "http://localhost:5173,http://localhost:5174,http://localhost:3000,"
+            "http://localhost:3001,http://127.0.0.1:5173,http://127.0.0.1:3000,"
+            "https://nextaml-iim.onrender.com,https://nextgenaml.onrender.com,"
+            "https://nextgenaml-1.onrender.com",
+        ).split(",")
+        if origin.strip()
     ]
 
 

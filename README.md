@@ -102,6 +102,29 @@ python training/train.py --model graphsage --epochs 50
 
 ---
 
+## Deploy on Render
+
+This repo deploys cleanly as two Render services:
+
+1. **Backend**: a Python web service from the repo root.
+2. **Frontend**: a static site from `nextgen-frontend`.
+
+Use the root [render.yaml](render.yaml) as the starting point. The important runtime settings are:
+
+- Backend build command: `pip install -r requirements.txt`
+- Backend start command: `uvicorn api.main:app --host 0.0.0.0 --port $PORT`
+- Frontend build command: `npm ci && npm run build`
+- Frontend publish directory: `nextgen-frontend/out`
+- Frontend API URL: set `NEXT_PUBLIC_API_URL` to your backend Render URL
+- Backend CORS: set `FRONTEND_ORIGINS` to your frontend Render URL
+
+Notes:
+
+- The backend can run without a local frontend build; it now returns a JSON status response at `/` when `nextgen-frontend/out` is absent.
+- Render will not run the local `docker-compose.yml`, so Memgraph must be hosted separately or replaced with another reachable graph backend for production use.
+
+---
+
 ## Core Technology
 
 | Component          | Technology                                   |

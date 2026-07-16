@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: nextgenaml-api
+    env: python
+    plan: starter
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: FRONTEND_ORIGINS
+        value: https://nextaml-iim.onrender.com
+    autoDeploy: true
+
+  - type: web
+    name: nextgenaml-frontend
+    env: static
+    plan: starter
+    rootDir: nextgen-frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: out
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://nextaml-iim-api.onrender.com
+    autoDeploy: true

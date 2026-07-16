@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from loguru import logger
 import sys
 
@@ -115,10 +115,22 @@ app.include_router(timeline.router)
 app.include_router(upload.router)
 
 # ── Frontend static files ─────────────────────────────
-_frontend_dir = Path(__file__).resolve().parent.parent / "nextgen-frontend"
-app.mount("/static", StaticFiles(directory=str(_frontend_dir)), name="static")
+_frontend_dir = Path(__file__).resolve().parent.parent / "nextgen-frontend" / "out"
+
+if _frontend_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(_frontend_dir)), name="static")
 
 
 @app.get("/", include_in_schema=False)
 async def serve_frontend():
-    return FileResponse(str(_frontend_dir / "index.html"))
+    index_file = _frontend_dir / "index.html"
+    if index_file.exists():
+        return FileResponse(str(index_file))
+
+    return JSONResponse(
+        {
+            "message": "NextGenAML API is running.",
+            "docs": "/docs",
+            "health": "/health",
+        }
+    )
