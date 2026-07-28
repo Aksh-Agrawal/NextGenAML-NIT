@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Search, GitFork } from 'lucide-react'
 import { FundFlowGraph } from '@/components/FundFlowGraph'
 
@@ -9,12 +9,11 @@ const EXAMPLE_ACCOUNTS = [
   'SUS4007', 'SUS4008', 'SUS4002', 'USR1012', 'SUS4017',
 ]
 
-export default function FundFlowPage() {
+function FundFlowContent() {
   const searchParams = useSearchParams()
   const initial = searchParams.get('account') || ''
   const [accountId, setAccountId] = useState(initial)
   const [inputVal, setInputVal] = useState('')
-  const router = useRouter()
 
   useEffect(() => {
     const param = searchParams.get('account')
@@ -120,5 +119,13 @@ export default function FundFlowPage() {
         <FundFlowGraph accountId={accountId} />
       </div>
     </div>
+  )
+}
+
+export default function FundFlowPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 20, color: 'var(--text-muted)' }}>Loading fund flow...</div>}>
+      <FundFlowContent />
+    </Suspense>
   )
 }
