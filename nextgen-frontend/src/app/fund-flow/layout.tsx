@@ -1,7 +1,7 @@
 import { SidebarNav } from '@/components/Sidebar'
 import { Topbar } from '@/components/Topbar'
 import { Providers } from '@/components/Providers'
-import "./globals.css";
+import "../globals.css"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
