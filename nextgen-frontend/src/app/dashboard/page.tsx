@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, Variants } from "framer-motion";
 import CountUp from "react-countup";
 import {
@@ -9,6 +9,12 @@ import {
   AlertTriangle,
   Cpu,
   TrendingUp,
+  Upload,
+  FileUp,
+  Database,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import {
   AreaChart,
@@ -45,6 +51,12 @@ const cardVariants: Variants = {
 };
 
 export default function DashboardPage() {
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const {
     data: stats,
     isLoading: statsLoading,
@@ -67,6 +79,44 @@ export default function DashboardPage() {
     queryFn: () => api.alerts(0.5, 50),
     refetchInterval: 5_000,
     staleTime: 0,
+  });
+
+  const {
+    data: uploadStatus,
+    isLoading: uploadStatusLoading,
+    refetch: refetchUploadStatus,
+  } = useQuery({
+    queryKey: ["uploadStatus"],
+    queryFn: api.uploadStatus,
+    refetchInterval: 30_000,
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: api.uploadTransactions,
+    onSuccess: async (response) => {
+      setUploadError(null);
+      setUploadNotice(
+        `Loaded ${response.filename} (${response.rows.toLocaleString()} rows)`,
+      );
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["graphStats"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["alerts"] }),
+        queryClient.invalidateQueries({ queryKey: ["health"] }),
+        refetchStats(),
+        refetchUploadStatus(),
+      ]);
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : "Upload failed";
+      setUploadError(message);
+      setUploadNotice(null);
+    },
   });
 
   const alertFeedRef = useRef<HTMLDivElement>(null);
@@ -147,6 +197,163 @@ export default function DashboardPage() {
           >
             LIVE
           </span>
+        </div>
+      </div>
+
+      {/* CSV Upload Banner */}
+      <div
+        className="card p-5"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(0,229,255,0.07), rgba(139,92,246,0.08))",
+        }}
+      >
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="space-y-3 min-w-0">
+            <div className="flex items-center gap-2">
+              <div
+                style={{
+                  padding: 8,
+                  borderRadius: 10,
+                  background: "rgba(0,229,255,0.12)",
+                }}
+              >
+                <Database size={16} style={{ color: "var(--accent-blue)" }} />
+              </div>
+              <div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  Upload your transaction CSV
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  Replace the demo dataset with your own file. The graph,
+                  alerts, and risk scores refresh after upload.
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-[12px]">
+              <span
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <CheckCircle2
+                  size={12}
+                  style={{
+                    color: uploadStatus?.loaded
+                      ? "var(--accent-green)"
+                      : "var(--text-muted)",
+                  }}
+                />
+                {uploadStatusLoading
+                  ? "Checking dataset..."
+                  : uploadStatus?.loaded
+                    ? `${uploadStatus.rows.toLocaleString()} rows loaded`
+                    : "No uploaded dataset yet"}
+              </span>
+              {uploadStatus?.accounts != null && (
+                <span
+                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {uploadStatus.accounts.toLocaleString()} accounts ·{" "}
+                  {uploadStatus.edges.toLocaleString()} edges
+                </span>
+              )}
+              {uploadStatus?.columns?.length ? (
+                <span
+                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {uploadStatus.columns.join(", ")}
+                </span>
+              ) : null}
+            </div>
+
+            {uploadNotice && (
+              <div
+                className="flex items-center gap-2 text-[12px]"
+                style={{ color: "var(--accent-green)" }}
+              >
+                <CheckCircle2 size={14} />
+                {uploadNotice}
+              </div>
+            )}
+            {uploadError && (
+              <div
+                className="flex items-center gap-2 text-[12px]"
+                style={{ color: "var(--accent-red)" }}
+              >
+                <AlertCircle size={14} />
+                {uploadError}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 shrink-0 min-w-[280px]">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setSelectedFile(file);
+                setUploadError(null);
+                setUploadNotice(null);
+              }}
+              className="block w-full text-[12px] text-[var(--text-secondary)] file:mr-4 file:rounded-lg file:border-0 file:bg-[rgba(255,255,255,0.08)] file:px-4 file:py-2 file:text-[12px] file:font-semibold file:text-white hover:file:bg-[rgba(255,255,255,0.12)]"
+            />
+
+            <div className="flex items-center gap-2">
+              <button
+                className="btn-ghost flex items-center gap-2"
+                style={{ padding: "8px 12px", fontSize: 12, minWidth: 132 }}
+                onClick={() => uploadMutation.mutate(selectedFile as File)}
+                disabled={!selectedFile || uploadMutation.isPending}
+              >
+                {uploadMutation.isPending ? (
+                  <Loader2 size={14} className="animate-spin-slow" />
+                ) : (
+                  <Upload size={14} />
+                )}
+                {uploadMutation.isPending ? "Uploading..." : "Upload CSV"}
+              </button>
+              {selectedFile ? (
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-muted)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {selectedFile.name}
+                </span>
+              ) : (
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  Select a transaction file
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

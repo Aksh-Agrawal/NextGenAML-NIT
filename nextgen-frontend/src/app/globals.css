@@ -809,11 +809,6 @@ svg.graph-canvas text {
 
 svg.graph-canvas .node-circle {
   cursor: pointer;
-  transition: filter 0.2s ease;
-}
-
-svg.graph-canvas .node-circle:hover {
-  filter: brightness(1.3);
 }
 
 svg.graph-canvas .edge-path {

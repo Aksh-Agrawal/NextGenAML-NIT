@@ -56,6 +56,7 @@ async def upload_csv(file: UploadFile = File(...)):
 
     # Recompute risk scores & patterns
     risk_engine.compute_patterns()
+    risk_engine.refresh_scores()
 
     logger.info(f"Pipeline reloaded: {count} transactions, {graph_manager.G.number_of_nodes()} accounts")
 

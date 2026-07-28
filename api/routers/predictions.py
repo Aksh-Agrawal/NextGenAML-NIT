@@ -11,18 +11,53 @@ _start_time = time.time()
 
 @router.post("/predict", response_model=PredictionResponse)
 def predict_single(account_id: str):
-    from api.main import inference_engine
+    from api.main import risk_engine
 
-    result = inference_engine.predict(account_id)
-    return PredictionResponse(**result)
+    score = risk_engine.score_account(account_id)
+    risk_val = score["risk_score"] / 100.0
+
+    risk_level = "low"
+    if risk_val >= 0.75:
+        risk_level = "critical"
+    elif risk_val >= 0.5:
+        risk_level = "high"
+    elif risk_val >= 0.25:
+        risk_level = "medium"
+
+    return PredictionResponse(
+        account_id=account_id,
+        fraud_probability=round(risk_val, 4),
+        risk_level=risk_level,
+        confidence=round(min(0.95, 0.5 + abs(risk_val - 0.5)), 4),
+        attention_weights=[round(risk_val, 2)] * 3,
+    )
 
 
 @router.post("/predict/batch", response_model=list[PredictionResponse])
 def predict_batch(req: BatchPredictionRequest):
-    from api.main import inference_engine
+    from api.main import risk_engine
 
-    results = inference_engine.predict_batch(req.account_ids)
-    return [PredictionResponse(**r) for r in results]
+    results = []
+    for account_id in req.account_ids:
+        score = risk_engine.score_account(account_id)
+        risk_val = score["risk_score"] / 100.0
+
+        risk_level = "low"
+        if risk_val >= 0.75:
+            risk_level = "critical"
+        elif risk_val >= 0.5:
+            risk_level = "high"
+        elif risk_val >= 0.25:
+            risk_level = "medium"
+
+        results.append(PredictionResponse(
+            account_id=account_id,
+            fraud_probability=round(risk_val, 4),
+            risk_level=risk_level,
+            confidence=round(min(0.95, 0.5 + abs(risk_val - 0.5)), 4),
+            attention_weights=[round(risk_val, 2)] * 3,
+        ))
+    return results
 
 
 @router.post("/monitor/transaction", response_model=MonitorResponse)

@@ -54,15 +54,18 @@ def explain_account(account_id: str):
     # Top suspicious edges
     top_edges = []
     if account_id in graph_manager.G:
-        for neighbor in list(graph_manager.G.successors(account_id))[:5]:
+        for neighbor in list(graph_manager.G.successors(account_id)):
             edge_data = graph_manager.G[account_id][neighbor]
-            top_edges.append({
-                "source": account_id,
-                "target": neighbor,
-                "amount": edge_data.get("total_amount", 0),
-                "tx_count": edge_data.get("tx_count", 0),
-                "suspicious": edge_data.get("is_suspicious", False),
-            })
+            if edge_data.get("is_suspicious"):
+                top_edges.append({
+                    "source": account_id,
+                    "target": neighbor,
+                    "amount": edge_data.get("total_amount", 0),
+                    "tx_count": edge_data.get("tx_count", 0),
+                    "suspicious": True,
+                })
+                if len(top_edges) >= 5:
+                    break
 
     # Recommendation
     risk = score_data["risk_score"]

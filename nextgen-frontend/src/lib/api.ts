@@ -54,7 +54,7 @@ export interface GraphEdge {
 export interface SubgraphResponse {
   nodes: GraphNode[];
   links: GraphEdge[];
-  center_account: string;
+  center_account?: string;
 }
 
 export interface ExplainResponse {
@@ -151,9 +151,13 @@ export interface HealthResponse {
 // ── Fetch Helpers ──────────────────────────────────────
 
 async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
+  const hasFormDataBody = options?.body instanceof FormData;
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    headers: {
+      ...(hasFormDataBody ? {} : { "Content-Type": "application/json" }),
+      ...(options?.headers ?? {}),
+    },
   });
   if (!response.ok) {
     const err = await response.text();
@@ -162,10 +166,38 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
+export interface UploadStatusResponse {
+  loaded: boolean;
+  rows: number;
+  accounts: number;
+  edges: number;
+  columns?: string[];
+}
+
+export interface UploadCsvResponse {
+  status: string;
+  filename: string;
+  rows: number;
+  accounts: number;
+  edges: number;
+}
+
 // ── API Functions ──────────────────────────────────────
 
 export const api = {
   health: () => fetchAPI<HealthResponse>("/health"),
+
+  uploadStatus: () => fetchAPI<UploadStatusResponse>("/upload/status"),
+
+  uploadTransactions: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return fetchAPI<UploadCsvResponse>("/upload/csv", {
+      method: "POST",
+      body: formData,
+    });
+  },
 
   graphStats: () => fetchAPI<GraphStats>("/graph/stats"),
 

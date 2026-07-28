@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import * as d3 from "d3";
@@ -32,14 +32,14 @@ import {
 import CountUp from "react-countup";
 
 interface FundFlowGraphProps {
-  accountId: string;
+  accountId?: string;
 }
 
 type Layout = "force" | "circular" | "hierarchical";
 
 function isHighFraudProbability(score?: number) {
   const normalized = (score ?? 0) <= 1 ? (score ?? 0) * 100 : (score ?? 0);
-  return normalized > 50;
+  return normalized >= 50;
 }
 
 export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
@@ -47,6 +47,7 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<d3.Simulation<any, any> | null>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const panelContentRef = useRef<HTMLDivElement>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [layout, setLayout] = useState<Layout>("force");
   const [showSuspiciousOnly, setShowSuspiciousOnly] = useState(false);
@@ -58,15 +59,23 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
   const router = useRouter();
 
   const {
-    data: subgraph,
+    data: subgraphData,
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ["subgraph", accountId],
-    queryFn: () => api.subgraph(accountId),
-    enabled: !!accountId,
+    queryKey: accountId ? ["subgraph", accountId] : ["fullGraph"],
+    queryFn: () => accountId ? api.subgraph(accountId) : api.fullGraph(200),
+    enabled: true,
   });
+
+  const subgraph = useMemo(
+    () =>
+      subgraphData
+        ? { ...subgraphData, center_account: subgraphData.center_account ?? accountId ?? "" }
+        : undefined,
+    [subgraphData, accountId],
+  );
 
   const { data: prediction } = useQuery({
     queryKey: ["predict", selectedNode],
@@ -80,13 +89,38 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
     enabled: !!selectedNode,
   });
 
-  const [renderKey, setRenderKey] = useState(0);
+  const [ready, setReady] = useState(false);
 
-  // trigger re-render after mount so SVG has actual dimensions
   useEffect(() => {
-    const t = setTimeout(() => setRenderKey((k) => k + 1), 100);
-    return () => clearTimeout(t);
-  }, [accountId, subgraph]);
+    if (!containerRef.current) return;
+    const check = () => {
+      const rect = containerRef.current!.getBoundingClientRect();
+      if (rect.width > 10 && rect.height > 10) {
+        setReady(true);
+      }
+    };
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 10 && height > 10) {
+          setReady(true);
+        }
+      }
+    });
+    observer.observe(containerRef.current);
+    check();
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    setSelectedNode(accountId ?? null);
+  }, [accountId]);
+
+  useEffect(() => {
+    if (panelContentRef.current) {
+      panelContentRef.current.scrollTop = 0;
+    }
+  }, [selectedNode]);
 
   const handleZoomIn = useCallback(() => {
     if (!svgRef.current || !zoomRef.current) return;
@@ -112,18 +146,30 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       .call(zoomRef.current.transform, d3.zoomIdentity);
   }, []);
 
+  const initDepsRef = useRef("");
+
   useEffect(() => {
-    if (!svgRef.current || !subgraph) return;
+    if (!svgRef.current || !subgraph || !ready) return;
+
+    const deps = JSON.stringify([
+      subgraph.nodes.length,
+      subgraph.links.length,
+      layout,
+      showSuspiciousOnly,
+      accountId,
+    ]);
+    if (initDepsRef.current === deps) return;
+    initDepsRef.current = deps;
 
     const svg = d3.select(svgRef.current);
 
-    // Use actual bounding rect, fall back to window dimensions
-    const rect = svgRef.current.getBoundingClientRect();
-    const W =
-      rect.width > 10
-        ? rect.width
-        : (svgRef.current.parentElement?.getBoundingClientRect().width ?? 900);
-    const H = rect.height > 10 ? rect.height : 600;
+    // Clear previous SVG contents to prevent duplication/overlapping
+    svg.selectAll('*').remove();
+
+    // Use actual container dimensions
+    const rect = containerRef.current!.getBoundingClientRect();
+    const W = rect.width;
+    const H = rect.height;
 
     // Grid background
     const defs = svg.append("defs");
@@ -225,8 +271,8 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       });
     } else if (layout === "hierarchical") {
       const center = nodes.find((n) => n.id === accountId);
-      const others = nodes.filter((n) => n.id !== accountId);
-      startPos.set(accountId, { x: W / 2, y: H * 0.2 });
+      const others = accountId ? nodes.filter((n) => n.id !== accountId) : nodes;
+      if (accountId) startPos.set(accountId, { x: W / 2, y: H * 0.2 });
       others.forEach((n, i) => {
         const cols = Math.ceil(Math.sqrt(others.length));
         const row = Math.floor(i / cols);
@@ -250,6 +296,9 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
 
     const sim = d3
       .forceSimulation(simNodes)
+      .alphaDecay(0.05)
+      .velocityDecay(0.5)
+      .alphaMin(0.001)
       .force(
         "link",
         d3
@@ -266,6 +315,10 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       .force("collision", d3.forceCollide(30));
 
     simulationRef.current = sim;
+
+    const settleTimer = setTimeout(() => {
+      sim.stop();
+    }, 2500);
 
     // Edges
     const edgeEl = container
@@ -324,24 +377,22 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       .call(
         d3
           .drag<SVGGElement, any>()
-          .on("start", (e, d) => {
-            if (!e.active) sim.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-          })
+          .clickDistance(4)
+          .on("start", () => {})
           .on("drag", (e, d) => {
+            if (!e.active) sim.alphaTarget(0.3).restart();
             d.fx = e.x;
             d.fy = e.y;
           })
           .on("end", (e, d) => {
             if (!e.active) sim.alphaTarget(0);
-            if (layout === "force") {
-              d.fx = null;
-              d.fy = null;
+            if (Math.abs(e.dx) < 4 && Math.abs(e.dy) < 4) {
+              d.fx = d.x;
+              d.fy = d.y;
+              setSelectedNode(d.id);
             }
           }),
       )
-      .on("click", (e, d) => setSelectedNode(d.id));
 
     // Node outer ring (glow for selected/flagged)
     nodeGroup
@@ -406,13 +457,11 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       nodeGroup.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
     });
 
-    // Initial selection
-    setSelectedNode(accountId);
-
     return () => {
+      clearTimeout(settleTimer);
       sim.stop();
     };
-  }, [subgraph, layout, showSuspiciousOnly, accountId, renderKey]);
+  }, [subgraph, layout, showSuspiciousOnly, accountId, ready]);
 
   return (
     <div
@@ -508,12 +557,12 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       {/* Main SVG */}
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
-          <LoadingState variant="pulse" message="Loading subgraph..." />
+          <LoadingState variant="pulse" message={accountId ? "Loading subgraph..." : "Loading full graph..."} />
         </div>
       ) : error ? (
         <div className="flex-1 flex items-center justify-center">
           <ErrorCard
-            message={`Failed to load subgraph for ${accountId}`}
+            message={`Failed to load ${accountId ? `subgraph for ${accountId}` : "full graph"}`}
             onRetry={() => refetch()}
           />
         </div>
@@ -563,7 +612,6 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
               borderLeft: "1px solid var(--border)",
               display: "flex",
               flexDirection: "column",
-              overflowY: "auto",
               zIndex: 5,
             }}
           >
@@ -591,7 +639,7 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
               </button>
             </div>
 
-            <div className="p-4 space-y-5">
+            <div ref={panelContentRef} className="p-4 space-y-5" style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", paddingBottom: 80 }}>
               {/* Account ID */}
               <div>
                 <div
@@ -609,7 +657,7 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
                     fontWeight: 700,
                     fontFamily: "JetBrains Mono, monospace",
                     color: prediction
-                      ? getRiskColor(prediction.risk_level)
+                      ? getRiskColor(getRiskFromProb(prediction.fraud_probability))
                       : "var(--accent-blue)",
                     wordBreak: "break-all",
                   }}
@@ -651,11 +699,11 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
                       fontSize: 42,
                       fontWeight: 800,
                       fontFamily: "Roboto Mono, JetBrains Mono, monospace",
-                      color: getRiskColor(prediction.risk_level),
+                      color: getRiskColor(getRiskFromProb(prediction.fraud_probability)),
                       lineHeight: 1,
                       filter:
                         prediction.fraud_probability > 0.75
-                          ? `drop-shadow(0 0 12px ${getRiskColor(prediction.risk_level)}60)`
+                          ? `drop-shadow(0 0 12px ${getRiskColor(getRiskFromProb(prediction.fraud_probability))}60)`
                           : "none",
                     }}
                   >
@@ -667,7 +715,7 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
                     />
                   </div>
                   <div style={{ marginTop: 8 }}>
-                    <RiskBadge level={prediction.risk_level} />
+                    <RiskBadge level={getRiskFromProb(prediction.fraud_probability)} />
                   </div>
                 </div>
               )}
@@ -879,7 +927,7 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
                   style={{ fontSize: 12, padding: "8px 10px" }}
                   onClick={() =>
                     router.push(
-                      `/fund-flow/${encodeURIComponent(selectedNode)}`,
+                       `/fund-flow?account=${encodeURIComponent(selectedNode)}`,
                     )
                   }
                 >

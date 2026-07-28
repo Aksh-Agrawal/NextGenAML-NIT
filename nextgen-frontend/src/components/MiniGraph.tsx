@@ -74,7 +74,7 @@ export function MiniGraph({ alerts }: MiniGraphProps) {
       .append('g')
       .attr('class', 'node')
       .style('cursor', 'pointer')
-      .on('click', (e, d) => router.push(`/fund-flow/${encodeURIComponent(d.id)}`)
+      .on('click', (e, d) => router.push(`/fund-flow?account=${encodeURIComponent(d.id)}`)
       )
 
     nodeGroup

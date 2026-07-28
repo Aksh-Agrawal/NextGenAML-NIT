@@ -167,11 +167,11 @@ class InferenceEngine:
         combined = 0.6 * prob + 0.4 * heuristic
 
         risk_level = "low"
-        if combined > 0.75:
+        if combined >= 0.75:
             risk_level = "critical"
-        elif combined > 0.5:
+        elif combined >= 0.5:
             risk_level = "high"
-        elif combined > 0.3:
+        elif combined >= 0.3:
             risk_level = "medium"
 
         return {

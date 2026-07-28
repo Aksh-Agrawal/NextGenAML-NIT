@@ -29,7 +29,7 @@ class Settings:
 
     # --- Paths ---
     DATA_DIR: Path = BASE_DIR / "data"
-    TRANSACTION_CSV: Path = BASE_DIR / "transaction.csv"
+    TRANSACTION_CSV: Path = DATA_DIR / "uploaded_transactions.csv"
     SAVED_MODELS_DIR: Path = BASE_DIR / "saved_models"
     LOGS_DIR: Path = BASE_DIR / "logs"
 

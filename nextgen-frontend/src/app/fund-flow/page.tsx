@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, GitFork } from 'lucide-react'
 import { FundFlowGraph } from '@/components/FundFlowGraph'
 
@@ -11,9 +10,16 @@ const EXAMPLE_ACCOUNTS = [
 ]
 
 export default function FundFlowPage() {
-  const [accountId, setAccountId] = useState('SUS4007')
+  const searchParams = useSearchParams()
+  const initial = searchParams.get('account') || ''
+  const [accountId, setAccountId] = useState(initial)
   const [inputVal, setInputVal] = useState('')
   const router = useRouter()
+
+  useEffect(() => {
+    const param = searchParams.get('account')
+    if (param !== null) setAccountId(param)
+  }, [searchParams])
 
   const handleSearch = () => {
     const val = inputVal.trim()
@@ -64,6 +70,19 @@ export default function FundFlowPage() {
 
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Quick:</span>
+          <button
+            className="btn-ghost"
+            style={{
+              padding: '4px 8px',
+              fontSize: 11,
+              background: accountId === '' ? 'rgba(77,142,255,0.15)' : undefined,
+              borderColor: accountId === '' ? 'rgba(77,142,255,0.3)' : undefined,
+              color: accountId === '' ? 'var(--accent-blue)' : undefined,
+            }}
+            onClick={() => { setAccountId(''); setInputVal('') }}
+          >
+            All
+          </button>
           {EXAMPLE_ACCOUNTS.map((id) => (
             <button
               key={id}
@@ -91,7 +110,7 @@ export default function FundFlowPage() {
             color: 'var(--accent-purple)',
             fontWeight: 600,
           }}>
-            {accountId}
+            {accountId || 'All Accounts'}
           </span>
         </div>
       </div>

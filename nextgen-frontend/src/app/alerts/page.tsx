@@ -463,7 +463,7 @@ export default function AlertsPage() {
                       <td>
                         <div className="flex items-center gap-2">
                           <Link
-                            href={`/fund-flow/${encodeURIComponent(alert.account_id)}`}
+                            href={`/fund-flow?account=${encodeURIComponent(alert.account_id)}`}
                             className="btn-ghost"
                             style={{ padding: "4px 8px", fontSize: 11, gap: 4 }}
                           >
