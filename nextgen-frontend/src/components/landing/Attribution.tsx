@@ -140,7 +140,7 @@ export function Attribution() {
             letterSpacing: "0.2px",
           }}
         >
-          Union Bank of India · Problem Statement 3 · Hackathon 2026
+          X-Bank of India · Problem Statement 3 · Hackathon 2026
         </p>
 
         {/* Badges */}

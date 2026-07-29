@@ -2,7 +2,7 @@
 
 ### Next-Generation AML Fund Flow Tracking System
 
-**Union Bank of India | Problem Statement 3 | Hackathon 2026**
+**X-Bank of India | Problem Statement 3 | Hackathon 2026**
 
 ---
 
@@ -10,7 +10,7 @@
 
 ### Problem Statement
 
-Union Bank of India needs an intelligent system to detect money laundering by tracking
+X-Bank of India needs an intelligent system to detect money laundering by tracking
 end-to-end fund flows across thousands of accounts. Specifically, the system must identify:
 
 | AML Typology                 | Description                                                   |
@@ -416,7 +416,7 @@ chain = ChatPromptTemplate.from_template(template) | ChatGoogleGenerativeAI(
 {
   "report_id": "ARF-ACCT-8921-20250115",
   "reporting_entity": {
-    "bank_name": "Union Bank of India",
+    "bank_name": "X-Bank of India",
     "fiu_reg_no": "FIIIND20250001"
   },
   "subject_account": {
@@ -560,7 +560,7 @@ python training/train.py --model line_mvgnn --epochs 50 --batch_size 64
 ## 13. PROJECT FILE INVENTORY
 
 ```
-D:\UNION Bank Hackathon\NextGenAML\
+D:\X-Bank Hackathon\NextGenAML\
 ├── README.md                        Project setup guide
 ├── EXAMPLE_WALKTHROUGH.md           End-to-end worked example
 ├── PROJECT_INFO.md                  ← This document

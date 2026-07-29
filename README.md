@@ -1,6 +1,6 @@
 # NextGenAML – Next-Generation AML Fund Flow Tracking System
 
-### Union Bank of India – Problem Statement 3
+### X-Bank of India – Problem Statement 3
 
 > **End-to-end machine learning pipeline** for detecting money laundering via
 > graph-based analysis of financial transaction networks.
@@ -156,4 +156,4 @@ Notes:
 
 ---
 
-> Built for Union Bank of India Hackathon – Problem Statement 3
+> Built for X-Bank of India Hackathon – Problem Statement 3

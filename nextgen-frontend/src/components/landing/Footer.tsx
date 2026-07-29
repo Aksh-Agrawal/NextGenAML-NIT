@@ -142,7 +142,7 @@ export function Footer() {
               fontFamily: "var(--font-mono), 'JetBrains Mono', monospace",
             }}
           >
-            Union Bank Hackathon 2026
+            X-Bank Hackathon 2026
           </span>
         </div>
 

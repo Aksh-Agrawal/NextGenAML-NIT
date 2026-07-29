@@ -111,7 +111,7 @@ const SAR_XML = `<?xml version="1.0" encoding="UTF-8"?>
   <ReportHeader>
     <ReportType>ARF</ReportType>
     <ReportDate>2026-03-13</ReportDate>
-    <ReportingEntity>Union Bank of India</ReportingEntity>
+    <ReportingEntity>X-Bank of India</ReportingEntity>
   </ReportHeader>
   <SuspiciousTransaction>
     <AccountID>ACCT-8921</AccountID>

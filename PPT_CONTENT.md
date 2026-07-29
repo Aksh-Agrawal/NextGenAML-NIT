@@ -2,7 +2,7 @@
 
 ### Next-Generation AML Fund Flow Tracking System
 
-**Union Bank of India | Problem Statement 3 | Hackathon 2026**
+**X-Bank of India | Problem Statement 3 | Hackathon 2026**
 
 ---
 
@@ -26,7 +26,7 @@ _"From Raw Transaction CSV to FIU-IND XML Evidence Package — in Under 30 Secon
 
 ## Team Details:
 
-- **Presented to:** Union Bank of India
+- **Presented to:** X-Bank of India
 - **Problem Statement:** PS-3 – End-to-End Fund Flow Mapping & Suspicious Pattern Detection
 - **Date:** March 2026
 
@@ -46,7 +46,7 @@ _"From Raw Transaction CSV to FIU-IND XML Evidence Package — in Under 30 Secon
 
 ## Headline:
 
-**What Is Union Bank Losing To?**
+**What Is X-Bank Losing To?**
 
 ## The Five AML Typologies We Target:
 
@@ -482,7 +482,7 @@ Process:
 ```xml
 <FINGateCTRData>
   <ReportingEntity>
-    <BankName>Union Bank of India</BankName>
+    <BankName>X-Bank of India</BankName>
     <FIUReg>FIIIND20250001</FIUReg>
   </ReportingEntity>
   <AlertDetails>
@@ -585,7 +585,7 @@ NextGenAML represents a complete fusion of:
 - **Regulatory compliance** (FIU-IND XML, PMLA thresholds, STR automation)
 - **Investigator UX** (Pyvis physics graphs, one-click SAR generation)
 
-This system transforms Union Bank's AML compliance from a **reactive, manual process**
+This system transforms X-Bank's AML compliance from a **reactive, manual process**
 to a **proactive, AI-driven, < 30 second investigation pipeline**.
 
 ## Thank You — Questions?

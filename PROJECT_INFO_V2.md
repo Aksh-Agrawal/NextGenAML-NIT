@@ -2,7 +2,7 @@
 
 ### Next-Generation Anti-Money Laundering Fund Flow Tracking System
 
-**Union Bank of India | Problem Statement 3 | Hackathon 2026**
+**X-Bank of India | Problem Statement 3 | Hackathon 2026**
 
 ---
 
@@ -10,15 +10,15 @@
 
 ### Problem Statement
 
-Union Bank of India needs an intelligent system to detect money laundering by tracking end-to-end fund flows across thousands of accounts. The system must identify:
+X-Bank of India needs an intelligent system to detect money laundering by tracking end-to-end fund flows across thousands of accounts. The system must identify:
 
-| AML Typology | Description |
-|---|---|
-| **Rapid Layering** | Funds moved through multiple accounts within minutes |
-| **Circular Transactions** | Round-trip flows: A→B→C→A to obscure origin |
-| **Structuring (Smurfing)** | Multiple transactions just below ₹10 lakh reporting threshold |
-| **Dormant Activation** | Inactive accounts suddenly receiving large transfers |
-| **KYC-Transaction Mismatch** | Customer profile doesn't match actual transaction behavior |
+| AML Typology                 | Description                                                   |
+| ---------------------------- | ------------------------------------------------------------- |
+| **Rapid Layering**           | Funds moved through multiple accounts within minutes          |
+| **Circular Transactions**    | Round-trip flows: A→B→C→A to obscure origin                   |
+| **Structuring (Smurfing)**   | Multiple transactions just below ₹10 lakh reporting threshold |
+| **Dormant Activation**       | Inactive accounts suddenly receiving large transfers          |
+| **KYC-Transaction Mismatch** | Customer profile doesn't match actual transaction behavior    |
 
 ### Solution
 
@@ -37,69 +37,69 @@ NextGenAML is a **microservices-based Graph Neural Network system** with:
 
 ### Backend (Python 3.11+)
 
-| Component | Technology | Version | Purpose |
-|---|---|---|---|
-| API Framework | **FastAPI** | 0.135.1 | Async REST microservice |
-| ASGI Server | **Uvicorn** | 0.41.0 | Production ASGI runner |
-| Validation | **Pydantic** | 2.12.5 | Request/response schema validation |
-| Logging | **Loguru** | 0.7.3 | Structured logging |
-| HTTP Client | **httpx** | 0.28.1 | Async HTTP requests |
+| Component     | Technology   | Version | Purpose                            |
+| ------------- | ------------ | ------- | ---------------------------------- |
+| API Framework | **FastAPI**  | 0.135.1 | Async REST microservice            |
+| ASGI Server   | **Uvicorn**  | 0.41.0  | Production ASGI runner             |
+| Validation    | **Pydantic** | 2.12.5  | Request/response schema validation |
+| Logging       | **Loguru**   | 0.7.3   | Structured logging                 |
+| HTTP Client   | **httpx**    | 0.28.1  | Async HTTP requests                |
 
 ### Machine Learning
 
-| Component | Technology | Version | Purpose |
-|---|---|---|---|
-| DL Framework | **PyTorch** | 2.1.0 | Core neural network engine |
-| GNN Library | **PyTorch Geometric** | 2.5.x | Graph convolution operations |
-| Custom Model | **LineMVGNN** | v2.0 | Line graph + bidirectional message passing |
-| Inductive Model | **GraphSAGE** | via SAGEConv | Dormant account inference |
-| Fallback | **Gradient Boosting** (scikit-learn) | 1.8.0 | Classifier when GPU unavailable |
-| Data | **NumPy** / **Pandas** | 2.4.3 / 3.0.1 | Numerical computation / data manipulation |
+| Component       | Technology                           | Version       | Purpose                                    |
+| --------------- | ------------------------------------ | ------------- | ------------------------------------------ |
+| DL Framework    | **PyTorch**                          | 2.1.0         | Core neural network engine                 |
+| GNN Library     | **PyTorch Geometric**                | 2.5.x         | Graph convolution operations               |
+| Custom Model    | **LineMVGNN**                        | v2.0          | Line graph + bidirectional message passing |
+| Inductive Model | **GraphSAGE**                        | via SAGEConv  | Dormant account inference                  |
+| Fallback        | **Gradient Boosting** (scikit-learn) | 1.8.0         | Classifier when GPU unavailable            |
+| Data            | **NumPy** / **Pandas**               | 2.4.3 / 3.0.1 | Numerical computation / data manipulation  |
 
 ### Graph Database
 
-| Component | Technology | Version | Purpose |
-|---|---|---|---|
-| In-memory Graph | **NetworkX** | 3.6.1 | Primary directed graph (always available) |
-| Graph DB (opt) | **Memgraph** | Latest (Docker) | Optional Cypher graph DB |
-| Driver | **Neo4j driver** | 6.1.0 | Memgraph/Neo4j connectivity |
+| Component       | Technology       | Version         | Purpose                                   |
+| --------------- | ---------------- | --------------- | ----------------------------------------- |
+| In-memory Graph | **NetworkX**     | 3.6.1           | Primary directed graph (always available) |
+| Graph DB (opt)  | **Memgraph**     | Latest (Docker) | Optional Cypher graph DB                  |
+| Driver          | **Neo4j driver** | 6.1.0           | Memgraph/Neo4j connectivity               |
 
 ### Frontend (TypeScript / Node.js)
 
-| Component | Technology | Version | Purpose |
-|---|---|---|---|
-| Framework | **Next.js** | 14.2.35 | React framework (App Router, static export) |
-| UI Library | **React** | 18 | Component-based UI |
-| Language | **TypeScript** | 5 | Type safety |
-| Styling | **Tailwind CSS** | 3.4.1 | Utility-first CSS framework |
-| State Management | **@tanstack/react-query** | 5.90.21 | Server state caching & refetching |
-| Graph Visualization | **D3.js** | 7.9.0 | Force-directed graph rendering |
-| Animations | **Framer Motion** | 12.36.0 | UI transitions & panel animations |
-| Charts | **Recharts** | 3.8.0 | Area, bar, scatter, radial bar charts |
-| Icons | **Lucide React** | 0.577.0 | Icon library |
-| Counters | **React CountUp** | 6.5.3 | Animated number counters |
+| Component           | Technology                | Version | Purpose                                     |
+| ------------------- | ------------------------- | ------- | ------------------------------------------- |
+| Framework           | **Next.js**               | 14.2.35 | React framework (App Router, static export) |
+| UI Library          | **React**                 | 18      | Component-based UI                          |
+| Language            | **TypeScript**            | 5       | Type safety                                 |
+| Styling             | **Tailwind CSS**          | 3.4.1   | Utility-first CSS framework                 |
+| State Management    | **@tanstack/react-query** | 5.90.21 | Server state caching & refetching           |
+| Graph Visualization | **D3.js**                 | 7.9.0   | Force-directed graph rendering              |
+| Animations          | **Framer Motion**         | 12.36.0 | UI transitions & panel animations           |
+| Charts              | **Recharts**              | 3.8.0   | Area, bar, scatter, radial bar charts       |
+| Icons               | **Lucide React**          | 0.577.0 | Icon library                                |
+| Counters            | **React CountUp**         | 6.5.3   | Animated number counters                    |
 
 ### AI / Compliance
 
-| Component | Technology | Version | Purpose |
-|---|---|---|---|
-| LLM Orchestration | **LangChain** | 0.2.1 | Prompt chaining for SAR generation |
-| LLM Model | **Google Gemini 2.0 Flash** | — | SAR narrative + FIU-IND XML generation |
-| Integration | **langchain-google-genai** | 1.0.4 | Gemini API connector |
+| Component         | Technology                  | Version | Purpose                                |
+| ----------------- | --------------------------- | ------- | -------------------------------------- |
+| LLM Orchestration | **LangChain**               | 0.2.1   | Prompt chaining for SAR generation     |
+| LLM Model         | **Google Gemini 2.0 Flash** | —       | SAR narrative + FIU-IND XML generation |
+| Integration       | **langchain-google-genai**  | 1.0.4   | Gemini API connector                   |
 
 ### Infrastructure
 
-| Component | Technology | Purpose |
-|---|---|---|
-| Containerization | **Docker + Docker Compose** | Memgraph + API orchestration |
-| Cloud Deploy | **Render** | Backend: Python web service, Frontend: static site |
-| Monitoring | **Prometheus** (via prometheus-client) | Metrics scraping at `/metrics` |
+| Component        | Technology                             | Purpose                                            |
+| ---------------- | -------------------------------------- | -------------------------------------------------- |
+| Containerization | **Docker + Docker Compose**            | Memgraph + API orchestration                       |
+| Cloud Deploy     | **Render**                             | Backend: Python web service, Frontend: static site |
+| Monitoring       | **Prometheus** (via prometheus-client) | Metrics scraping at `/metrics`                     |
 
 ---
 
 ## 3. SYSTEM ARCHITECTURE
 
-```
+````
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                         DATA LAYER (NetworkX DiGraph)                    │
 │  Accounts (nodes) ←──TRANSACTION──→ Accounts (nodes)                     │
@@ -482,7 +482,7 @@ NextGenAML is a **microservices-based Graph Neural Network system** with:
                                                                                                                          ```json
                                                                                                                          {
                                                                                                                            "report_id": "ARF-ACCT-XXXX-20260115",
-                                                                                                                             "reporting_entity": { "bank_name": "Union Bank of India", "fiu_reg_no": "FIIIND20250001" },
+                                                                                                                             "reporting_entity": { "bank_name": "X-Bank of India", "fiu_reg_no": "FIIIND20250001" },
                                                                                                                                "subject_account": { "account_id": "ACCT-XXXX", "risk_level": "CRITICAL" },
                                                                                                                                  "gnn_analysis": { "model": "LineMVGNN v2.0", "fraud_probability": 0.93 },
                                                                                                                                    "transaction_summary": { "flagged_edges": 4, "total_flagged_amount_usd": 37400 },
@@ -644,4 +644,5 @@ NextGenAML is a **microservices-based Graph Neural Network system** with:
                                                                                                                                                                          | FastAPI | 0.135.1 |
                                                                                                                                                                          | PyTorch | 2.1.0 |
                                                                                                                                                                          | D3.js | 7.9.0 |
-                                                                                                                                                                         
+
+````

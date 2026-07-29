@@ -375,7 +375,7 @@ export function Hero() {
                   flexShrink: 0,
                 }}
               />
-              LIVE &nbsp;·&nbsp; Problem Statement 3 · Union Bank of India
+              LIVE &nbsp;·&nbsp; Problem Statement 3 · X-Bank of India
             </div>
           </motion.div>
 

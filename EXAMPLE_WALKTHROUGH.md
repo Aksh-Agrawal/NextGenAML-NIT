@@ -3,7 +3,7 @@
 ## 🏦 Scenario: "The Hawala Network"
 
 A money launderer is using **5 shell accounts** to move ₹50 lakh in circular transactions
-at Union Bank of India, deliberately keeping each transfer below the ₹10 lakh (≈ $10,000)
+at X-Bank of India, deliberately keeping each transfer below the ₹10 lakh (≈ $10,000)
 mandatory reporting threshold.
 
 ---
@@ -189,7 +189,7 @@ Analyst clicks **"📄 Generate FIU-IND SAR Report"** in the sidebar.
 ```xml
 <FINGateCTRData>
   <ReportingEntity>
-    <BankName>Union Bank of India</BankName>
+    <BankName>X-Bank of India</BankName>
     <FIUReg>FIIIND20250001</FIUReg>
   </ReportingEntity>
   <AlertDetails>

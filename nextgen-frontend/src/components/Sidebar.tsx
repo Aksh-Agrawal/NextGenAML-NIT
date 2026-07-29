@@ -88,7 +88,7 @@ export function SidebarNav() {
                   textTransform: "uppercase",
                 }}
               >
-                Union Bank of India
+                X-Bank of India
               </div>
             </motion.div>
           )}

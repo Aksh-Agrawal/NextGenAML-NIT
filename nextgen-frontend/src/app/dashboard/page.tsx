@@ -182,7 +182,7 @@ export default function DashboardPage() {
             System Overview
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>
-            Real-time AML monitoring · Union Bank of India
+            Real-time AML monitoring · X-Bank of India
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -50,7 +50,7 @@ function generateXML(
     <ReportId>${report.report_id}</ReportId>
     <ReportType>STR</ReportType>
     <ReportingDate>${now.toISOString()}</ReportingDate>
-    <ReportingEntity>Union Bank of India</ReportingEntity>
+    <ReportingEntity>X-Bank of India</ReportingEntity>
     <FIURegNo>FIU-IND-UBOI-2024</FIURegNo>
     <SystemVersion>NextGenAML v1.0</SystemVersion>
   </ReportHeader>
@@ -90,7 +90,7 @@ function SARReportForm() {
   const prefilledId = searchParams.get("accountId") ?? "";
 
   const [accountId, setAccountId] = useState(prefilledId);
-  const [bankName, setBankName] = useState("Union Bank of India");
+  const [bankName, setBankName] = useState("X-Bank of India");
   const [fiuReg, setFiuReg] = useState("FIU-IND-UBOI-2024");
   const [selectedTypologies, setSelectedTypologies] = useState<Set<string>>(
     new Set(["Rapid Layering", "Structuring / Smurfing"]),

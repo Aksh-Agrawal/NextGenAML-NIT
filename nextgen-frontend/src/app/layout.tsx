@@ -34,13 +34,13 @@ const robotoMono = Roboto_Mono({
 export const metadata: Metadata = {
   title: "NextGenAML — AI-Powered Anti-Money Laundering",
   description:
-    "Graph Neural Network based AML Detection System for Union Bank of India. Real-time transaction monitoring, fund flow analysis, and automated SAR reporting.",
+    "Graph Neural Network based AML Detection System for X-Bank of India. Real-time transaction monitoring, fund flow analysis, and automated SAR reporting.",
   keywords:
-    "AML, Anti-Money Laundering, GNN, Graph Neural Network, Financial Crime, Union Bank",
+    "AML, Anti-Money Laundering, GNN, Graph Neural Network, Financial Crime, X-Bank",
   openGraph: {
     title: "NextGenAML — AI-Powered AML Detection",
     description:
-      "Graph Neural Network based Anti-Money Laundering system for Union Bank of India",
+      "Graph Neural Network based Anti-Money Laundering system for X-Bank of India",
     type: "website",
   },
 };
