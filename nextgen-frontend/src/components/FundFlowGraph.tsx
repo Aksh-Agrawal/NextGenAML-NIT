@@ -15,8 +15,14 @@ import {
   X,
   ExternalLink,
   FileText,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  RotateCcw,
+  Timer,
 } from "lucide-react";
-import { api, type GraphNode, type GraphEdge } from "@/lib/api";
+import { api, type GraphNode, type GraphEdge, type FlowTransaction } from "@/lib/api";
 import {
   formatAmount,
   getRiskColor,
@@ -42,12 +48,36 @@ function isHighFraudProbability(score?: number) {
   return normalized >= 50;
 }
 
+interface ReplayState {
+  sim: d3.Simulation<any, any> | null;
+  nodes: any[];
+  links: any[];
+  nodeMap: Map<string, any>;
+  linkMap: Map<string, any>;
+  edgeElMap: Map<string, SVGLineElement>;
+  nodeSel: d3.Selection<SVGGElement, any, any, any> | null;
+  edgeSel: d3.Selection<SVGLineElement, any, any, any> | null;
+  container: d3.Selection<SVGGElement, any, any, any>;
+  W: number;
+  H: number;
+  centerAccount: string;
+  appliedCount: number;
+}
+
+const SPEED_PRESETS: { label: string; value: number }[] = [
+  { label: "0.5x", value: 2000 },
+  { label: "1x", value: 1000 },
+  { label: "2x", value: 500 },
+  { label: "4x", value: 250 },
+];
+
 export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<d3.Simulation<any, any> | null>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const panelContentRef = useRef<HTMLDivElement>(null);
+  const replayRef = useRef<ReplayState | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [layout, setLayout] = useState<Layout>("force");
   const [showSuspiciousOnly, setShowSuspiciousOnly] = useState(false);
@@ -56,6 +86,11 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
     y: number;
     text: string;
   } | null>(null);
+  const [replayMode, setReplayMode] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1000);
+  const [step, setStep] = useState(0);
+  const [minRisk, setMinRisk] = useState(0);
   const router = useRouter();
 
   const {
@@ -82,6 +117,54 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
     queryFn: () => api.predictQuery(selectedNode!),
     enabled: !!selectedNode,
   });
+
+  // Replay transaction stream – paginated so playback can complete every row.
+  const [allTxns, setAllTxns] = useState<FlowTransaction[]>([]);
+  const [flowTotal, setFlowTotal] = useState(0);
+  const [fetchOffset, setFetchOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [flowError, setFlowError] = useState<string | null>(null);
+  const [flowLoading, setFlowLoading] = useState(false);
+
+  const loadFlowPage = useCallback(
+    async (offset: number) => {
+      setFlowLoading(true);
+      try {
+        const res = await api.transactionFlow(accountId, 200, offset);
+        setAllTxns((prev) => {
+          const merged = [...prev];
+          for (const t of res.transactions) {
+            if (!merged.some((m) => m.index === t.index)) merged.push(t);
+          }
+          merged.sort((a, b) => a.index - b.index);
+          return merged;
+        });
+        setFlowTotal(res.total);
+        setFetchOffset(offset + res.transactions.length);
+        setHasMore(offset + res.transactions.length < res.total);
+        setFlowError(null);
+      } catch (e) {
+        setFlowError(String(e));
+      } finally {
+        setFlowLoading(false);
+      }
+    },
+    [accountId],
+  );
+
+  useEffect(() => {
+    if (!replayMode) return;
+    setAllTxns([]);
+    setFlowTotal(0);
+    setFetchOffset(0);
+    setHasMore(false);
+    setFlowError(null);
+    setStep(0);
+    loadFlowPage(0);
+  }, [replayMode, accountId, loadFlowPage]);
+
+  const currentTxn: FlowTransaction | undefined =
+    replayMode && allTxns.length > 0 ? allTxns[step] : undefined;
 
   const { data: explain } = useQuery({
     queryKey: ["explain", selectedNode],
@@ -157,9 +240,14 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       layout,
       showSuspiciousOnly,
       accountId,
+      replayMode,
+      minRisk,
     ]);
     if (initDepsRef.current === deps) return;
     initDepsRef.current = deps;
+
+    // Replay mode is animated by a dedicated effect below.
+    if (replayMode) return;
 
     const svg = d3.select(svgRef.current);
 
@@ -247,16 +335,31 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
     svg.call(zoom);
     zoomRef.current = zoom;
 
-    const links = showSuspiciousOnly
+    let links = showSuspiciousOnly
       ? subgraph.links.filter((l) => l.is_suspicious)
       : subgraph.links;
 
     const linkedIds = new Set(
       links.flatMap((l) => [l.source as string, l.target as string]),
     );
-    const nodes = showSuspiciousOnly
+    let nodes = showSuspiciousOnly
       ? subgraph.nodes.filter((n) => linkedIds.has(n.id) || n.id === accountId)
       : subgraph.nodes;
+
+    // Custom risk threshold (1–100%): only show accounts at/above the slider.
+    // Risk is stored on a 0–100 scale in the node payload.
+    if (minRisk > 0) {
+      nodes = nodes.filter(
+        (n) => n.id === accountId || (n.risk ?? 0) >= minRisk,
+      );
+      const visible = new Set(nodes.map((n) => n.id));
+      // Keep edges where at least one endpoint is above the threshold, so
+      // high-risk accounts still show their connections to filtered nodes.
+      links = links.filter(
+        (l) =>
+          visible.has(l.source as string) || visible.has(l.target as string),
+      );
+    }
 
     // Calculate positions based on layout
     let startPos: Map<string, { x: number; y: number }> = new Map();
@@ -461,7 +564,421 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       clearTimeout(settleTimer);
       sim.stop();
     };
-  }, [subgraph, layout, showSuspiciousOnly, accountId, ready]);
+  }, [subgraph, layout, showSuspiciousOnly, accountId, ready, replayMode, minRisk]);
+
+  // ── Replay mode: build the fund flow one transaction at a time ──────
+
+  const renderReplayGraph = useCallback((r: ReplayState) => {
+    const { sim, nodes, links, container } = r;
+    if (!sim) return;
+
+    // Edges (keyed by "sender->receiver" so existing edges update in place)
+    let edgeSel = container
+      .select<SVGGElement>(".edge-layer")
+      .selectAll<SVGLineElement, any>("line")
+      .data(links, (d: any) => d.key);
+    const edgeEnter = edgeSel.enter().append("line");
+    edgeEnter
+      .attr("marker-end", (d: any) =>
+        d.is_suspicious ? "url(#arrow-red)" : "url(#arrow-normal)",
+      )
+      .attr("stroke-dasharray", (d: any) => (d.is_suspicious ? "7,5" : null))
+      .attr("stroke-linecap", "round");
+    edgeEnter.each(function (d: any) {
+      r.edgeElMap.set(d.key, this as SVGLineElement);
+    });
+    edgeSel = edgeEnter.merge(edgeSel);
+    const maxVal = Math.max(...links.map((l) => l.value || 1), 1);
+    edgeSel
+      .attr("stroke", (d: any) => {
+        const norm = (d.value || 0) / maxVal;
+        if (d.is_suspicious || norm > 0.7) return "var(--accent-red)";
+        if (norm > 0.4) return "rgba(0,229,255,0.55)";
+        return "rgba(183,194,214,0.36)";
+      })
+      .attr("stroke-width", (d: any) => {
+        const norm = (d.value || 0) / maxVal;
+        if (d.is_suspicious || norm > 0.7) return 2.5;
+        if (norm > 0.4) return 1.5;
+        return 1;
+      })
+      .attr("stroke-opacity", (d: any) => (d.is_suspicious ? 0.92 : 0.45));
+    // Position edges immediately so new links render before the next tick
+    edgeSel
+      .attr("x1", (d: any) => (typeof d.source === "object" ? d.source.x : 0))
+      .attr("y1", (d: any) => (typeof d.source === "object" ? d.source.y : 0))
+      .attr("x2", (d: any) => (typeof d.target === "object" ? d.target.x : 0))
+      .attr("y2", (d: any) => (typeof d.target === "object" ? d.target.y : 0));
+    edgeSel.exit().remove();
+    r.edgeSel = edgeSel;
+
+    // Nodes
+    let nodeSel = container
+      .select<SVGGElement>(".node-layer")
+      .selectAll<SVGGElement, any>(".node")
+      .data(nodes, (d: any) => d.id);
+    const nodeEnter = nodeSel
+      .enter()
+      .append("g")
+      .attr("class", "node")
+      .style("cursor", "pointer");
+
+    nodeEnter
+      .append("circle")
+      .attr("class", "ring")
+      .attr("r", (d: any) => (d.id === r.centerAccount ? 20 : 14))
+      .attr("fill", "none")
+      .attr("stroke", (d: any) =>
+        d.id === r.centerAccount
+          ? "var(--accent-blue)"
+          : isHighFraudProbability(d.risk)
+            ? "var(--accent-red)"
+            : "transparent",
+      )
+      .attr("stroke-width", 2)
+      .attr("stroke-opacity", 0.6)
+      .attr("class", (d: any) =>
+        d.id === r.centerAccount ? "ring animate-ring-pulse-purple" : "ring",
+      );
+
+    nodeEnter
+      .append("circle")
+      .attr("class", "dot")
+      .attr("r", (d: any) => (d.id === r.centerAccount ? 16 : 10))
+      .attr("fill", (d: any) =>
+        d.id === r.centerAccount
+          ? "var(--accent-blue)"
+          : isHighFraudProbability(d.risk)
+            ? "var(--accent-red)"
+            : "rgba(0,229,255,0.85)",
+      )
+      .attr("fill-opacity", (d: any) => (d.id === r.centerAccount ? 1 : 0.75))
+      .attr("stroke", "rgba(255,255,255,0.1)")
+      .attr("stroke-width", 1.5)
+      .attr("filter", (d: any) =>
+        isHighFraudProbability(d.risk) || d.id === r.centerAccount
+          ? "url(#node-glow)"
+          : "",
+      );
+
+    nodeEnter
+      .append("text")
+      .text((d: any) => (d.id.length > 8 ? d.id.slice(-8) : d.id))
+      .attr("dy", (d: any) => (d.id === r.centerAccount ? 30 : 22))
+      .attr("text-anchor", "middle")
+      .style("fill", (d: any) =>
+        d.id === r.centerAccount ? "var(--accent-blue)" : "var(--text-secondary)",
+      )
+      .style("font-size", (d: any) => (d.id === r.centerAccount ? "11px" : "9px"))
+      .style("font-weight", (d: any) => (d.id === r.centerAccount ? "600" : "400"));
+
+    nodeEnter.call(
+      d3
+        .drag<SVGGElement, any>()
+        .clickDistance(4)
+        .on("start", () => {})
+        .on("drag", (e, d) => {
+          if (!e.active) sim.alphaTarget(0.3).restart();
+          d.fx = e.x;
+          d.fy = e.y;
+        })
+        .on("end", (e, d) => {
+          if (!e.active) sim.alphaTarget(0);
+          if (Math.abs(e.dx) < 4 && Math.abs(e.dy) < 4) {
+            d.fx = d.x;
+            d.fy = d.y;
+            setSelectedNode(d.id);
+          }
+        }),
+    );
+
+    nodeSel = nodeEnter.merge(nodeSel);
+    nodeSel.attr("transform", (d: any) => `translate(${d.x ?? 0},${d.y ?? 0})`);
+    r.nodeSel = nodeSel;
+
+    sim.nodes(nodes);
+    (sim.force("link") as d3.ForceLink<any, any>).links(links);
+  }, []);
+
+  const addTransactionToReplay = useCallback(
+    (r: ReplayState, txn: FlowTransaction, flash = true) => {
+      // Spawn new nodes near the existing counterpart of this transaction,
+      // so the layout flows naturally instead of jumping from the center.
+      const partner =
+        r.nodeMap.get(txn.sender) ?? r.nodeMap.get(txn.receiver) ?? undefined;
+      const baseX = partner ? partner.x : r.W / 2;
+      const baseY = partner ? partner.y : r.H / 2;
+
+      for (const acc of [txn.sender, txn.receiver]) {
+        if (!r.nodeMap.has(acc)) {
+          const node = {
+            id: acc,
+            risk: txn.label ? 70 : 20,
+            x: baseX + (Math.random() - 0.5) * 140,
+            y: baseY + (Math.random() - 0.5) * 140,
+          };
+          r.nodeMap.set(acc, node);
+          r.nodes.push(node);
+        }
+      }
+
+      const key = `${txn.sender}->${txn.receiver}`;
+      let link = r.linkMap.get(key);
+      if (link) {
+        link.value += txn.amount;
+        link.tx_count += 1;
+        link.is_suspicious = link.is_suspicious || !!txn.label;
+      } else {
+        link = {
+          key,
+          source: txn.sender,
+          target: txn.receiver,
+          value: txn.amount,
+          tx_count: 1,
+          is_suspicious: !!txn.label,
+        };
+        r.linkMap.set(key, link);
+        r.links.push(link);
+      }
+
+      renderReplayGraph(r);
+
+      // Flash the freshly animated edge so the flow step is obvious.
+      if (flash) {
+        const el = r.edgeElMap.get(key);
+        if (el) {
+          d3.select(el)
+            .attr("stroke", "var(--accent-red)")
+            .attr("stroke-width", 3.5)
+            .style("filter", "drop-shadow(0 0 8px rgba(255,61,113,0.8))");
+          window.setTimeout(() => renderReplayGraph(r), 700);
+        }
+      }
+    },
+    [renderReplayGraph],
+  );
+
+  // Initialize the replay canvas + force simulation
+  useEffect(() => {
+    if (!svgRef.current || !replayMode || !ready) return;
+
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove();
+
+    // Grid background
+    const defs = svg.append("defs");
+    const pattern = defs
+      .append("pattern")
+      .attr("id", "grid")
+      .attr("width", 40)
+      .attr("height", 40)
+      .attr("patternUnits", "userSpaceOnUse");
+    pattern
+      .append("path")
+      .attr("d", "M 40 0 L 0 0 0 40")
+      .attr("fill", "none")
+      .attr("stroke", "rgba(255,255,255,0.05)")
+      .attr("stroke-width", 1);
+    svg
+      .append("rect")
+      .attr("width", "100%")
+      .attr("height", "100%")
+      .attr("fill", "url(#grid)");
+
+    defs
+      .append("marker")
+      .attr("id", "arrow-normal")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 18)
+      .attr("refY", 0)
+      .attr("markerWidth", 4)
+      .attr("markerHeight", 4)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-5L10,0L0,5")
+      .attr("fill", "var(--text-muted)")
+      .attr("opacity", 0.5);
+
+    defs
+      .append("marker")
+      .attr("id", "arrow-red")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 18)
+      .attr("refY", 0)
+      .attr("markerWidth", 4)
+      .attr("markerHeight", 4)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-5L10,0L0,5")
+      .attr("fill", "var(--accent-red)");
+
+    const filter = defs
+      .append("filter")
+      .attr("id", "node-glow")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+    filter.append("feGaussianBlur").attr("stdDeviation", 4).attr("result", "blur");
+    filter
+      .append("feComposite")
+      .attr("in", "SourceGraphic")
+      .attr("in2", "blur")
+      .attr("operator", "over");
+
+    const rect = containerRef.current!.getBoundingClientRect();
+    const W = rect.width;
+    const H = rect.height;
+
+    const container = svg.append("g").attr("class", "container");
+    container.append("g").attr("class", "edge-layer");
+    container.append("g").attr("class", "node-layer");
+
+    const zoom = d3
+      .zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.1, 4])
+      .on("zoom", (e) => container.attr("transform", e.transform));
+    svg.call(zoom);
+    zoomRef.current = zoom;
+
+    const nodes: any[] = [];
+    const links: any[] = [];
+    const sim = d3
+      .forceSimulation(nodes)
+      .alphaDecay(0.02)
+      .velocityDecay(0.4)
+      .alphaMin(0.0005)
+      .force(
+        "link",
+        d3
+          .forceLink(links)
+          .id((d: any) => d.id)
+          .distance(100)
+          .strength(0.5),
+      )
+      .force("charge", d3.forceManyBody().strength(-300))
+      .force("center", d3.forceCenter(W / 2, H / 2))
+      .force("collision", d3.forceCollide(30));
+    simulationRef.current = sim;
+
+    const r: ReplayState = {
+      sim,
+      nodes,
+      links,
+      nodeMap: new Map(),
+      linkMap: new Map(),
+      edgeElMap: new Map(),
+      nodeSel: null,
+      edgeSel: null,
+      container,
+      W,
+      H,
+      centerAccount: accountId ?? "",
+      appliedCount: 0,
+    };
+    replayRef.current = r;
+
+    sim.on("tick", () => {
+      if (r.edgeSel) {
+        r.edgeSel
+          .attr("x1", (d: any) =>
+            typeof d.source === "object" && d.source ? d.source.x : 0,
+          )
+          .attr("y1", (d: any) =>
+            typeof d.source === "object" && d.source ? d.source.y : 0,
+          )
+          .attr("x2", (d: any) =>
+            typeof d.target === "object" && d.target ? d.target.x : 0,
+          )
+          .attr("y2", (d: any) =>
+            typeof d.target === "object" && d.target ? d.target.y : 0,
+          );
+      }
+      if (r.nodeSel) {
+        r.nodeSel.attr("transform", (d: any) =>
+          `translate(${d.x ?? 0},${d.y ?? 0})`,
+        );
+      }
+    });
+
+    setStep(0);
+    setPlaying(true);
+
+    return () => {
+      sim.stop();
+      replayRef.current = null;
+    };
+  }, [replayMode, ready, accountId]);
+
+  // Apply the transaction at the current step (forward/back/reset safe)
+  useEffect(() => {
+    const r = replayRef.current;
+    if (!replayMode || !r || allTxns.length === 0) return;
+    const target = Math.min(step, allTxns.length - 1);
+    if (target < 0) return;
+
+    // Stepping backwards / reset → rebuild from scratch
+    if (target + 1 < (r.appliedCount ?? 0)) {
+      r.nodes.length = 0;
+      r.links.length = 0;
+      r.nodeMap.clear();
+      r.linkMap.clear();
+      r.edgeElMap.clear();
+      r.container.selectAll(".node").remove();
+      r.container.selectAll("line").remove();
+      r.nodeSel = null;
+      r.edgeSel = null;
+    }
+
+    for (let i = r.appliedCount ?? 0; i <= target; i++) {
+      addTransactionToReplay(r, allTxns[i], i === target);
+    }
+    r.appliedCount = target + 1;
+    r.sim?.alpha(0.8).restart();
+  }, [step, replayMode, allTxns, addTransactionToReplay]);
+
+  // Auto-advance while playing – loads the next page before the end of the
+  // current window so playback continues to the very last transaction.
+  useEffect(() => {
+    if (!playing || !replayMode) return;
+    if (allTxns.length === 0) return;
+    if (step >= allTxns.length - 1) {
+      if (hasMore && !flowLoading) {
+        loadFlowPage(fetchOffset);
+      }
+      return;
+    }
+    const t = window.setTimeout(() => setStep((s) => s + 1), speed);
+    return () => window.clearTimeout(t);
+  }, [
+    playing,
+    step,
+    allTxns,
+    hasMore,
+    flowLoading,
+    fetchOffset,
+    speed,
+    replayMode,
+    loadFlowPage,
+  ]);
+
+  const resetReplay = useCallback(() => {
+    const r = replayRef.current;
+    if (r) {
+      r.nodes.length = 0;
+      r.links.length = 0;
+      r.nodeMap.clear();
+      r.linkMap.clear();
+      r.edgeElMap.clear();
+      r.container.selectAll(".node").remove();
+      r.container.selectAll("line").remove();
+      r.nodeSel = null;
+      r.edgeSel = null;
+      r.appliedCount = 0;
+    }
+    setStep(0);
+    setPlaying(true);
+  }, []);
 
   return (
     <div
@@ -492,42 +1009,136 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
           backdropFilter: "blur(10px)",
         }}
       >
-        {(["force", "circular", "hierarchical"] as Layout[]).map((l) => (
+        {!replayMode &&
+          (["force", "circular", "hierarchical"] as Layout[]).map((l) => (
+            <button
+              key={l}
+              onClick={() => setLayout(l)}
+              className="btn-ghost"
+              style={{
+                padding: "4px 10px",
+                fontSize: 11,
+                textTransform: "capitalize",
+                background: layout === l ? "rgba(0,229,255,0.2)" : undefined,
+                borderColor: layout === l ? "rgba(0,229,255,0.36)" : undefined,
+                color: layout === l ? "var(--accent-blue)" : undefined,
+              }}
+            >
+              {l}
+            </button>
+          ))}
+        <div style={{ width: 1, height: 20, background: "var(--border)" }} />
+        {!replayMode && (
           <button
-            key={l}
-            onClick={() => setLayout(l)}
+            onClick={() => setShowSuspiciousOnly(!showSuspiciousOnly)}
             className="btn-ghost"
             style={{
               padding: "4px 10px",
               fontSize: 11,
-              textTransform: "capitalize",
-              background: layout === l ? "rgba(0,229,255,0.2)" : undefined,
-              borderColor: layout === l ? "rgba(0,229,255,0.36)" : undefined,
-              color: layout === l ? "var(--accent-blue)" : undefined,
+              background: showSuspiciousOnly
+                ? "rgba(255,61,113,0.14)"
+                : undefined,
+              borderColor: showSuspiciousOnly
+                ? "rgba(255,61,113,0.3)"
+                : undefined,
+              color: showSuspiciousOnly ? "var(--accent-red)" : undefined,
             }}
           >
-            {l}
+            <Filter size={11} />
+            Suspicious only
           </button>
-        ))}
-        <div style={{ width: 1, height: 20, background: "var(--border)" }} />
+        )}
+        {!replayMode && (
+          <>
+            <div style={{ width: 1, height: 20, background: "var(--border)" }} />
+            <span
+              style={{
+                fontSize: 10,
+                color: "var(--text-muted)",
+                textTransform: "uppercase",
+                letterSpacing: "0.6px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Risk ≥
+            </span>
+            <input
+              type="range"
+              min={1}
+              max={100}
+              step={1}
+              value={minRisk}
+              onChange={(e) => setMinRisk(Number(e.target.value))}
+              style={{ width: 110 }}
+              title="Custom risk threshold (1–100%)"
+            />
+            <span
+              style={{
+                fontSize: 11,
+                fontFamily: "JetBrains Mono, monospace",
+                color: minRisk > 0 ? "var(--accent-red)" : "var(--text-muted)",
+                minWidth: 32,
+              }}
+            >
+              {minRisk}%
+            </span>
+            {minRisk > 0 && (
+              <button
+                className="btn-ghost"
+                onClick={() => setMinRisk(0)}
+                title="Reset threshold"
+                style={{ padding: "3px 8px", fontSize: 10 }}
+              >
+                Reset
+              </button>
+            )}
+          </>
+        )}
         <button
-          onClick={() => setShowSuspiciousOnly(!showSuspiciousOnly)}
+          onClick={() => setReplayMode((m) => !m)}
           className="btn-ghost"
+          title="Play the fund flow one transaction at a time"
           style={{
             padding: "4px 10px",
             fontSize: 11,
-            background: showSuspiciousOnly
-              ? "rgba(255,61,113,0.14)"
-              : undefined,
-            borderColor: showSuspiciousOnly
-              ? "rgba(255,61,113,0.3)"
-              : undefined,
-            color: showSuspiciousOnly ? "var(--accent-red)" : undefined,
+            background: replayMode ? "rgba(0,229,255,0.2)" : undefined,
+            borderColor: replayMode ? "rgba(0,229,255,0.36)" : undefined,
+            color: replayMode ? "var(--accent-blue)" : undefined,
           }}
         >
-          <Filter size={11} />
-          Suspicious only
+          {replayMode ? <Pause size={11} /> : <Play size={11} />}
+          {replayMode ? "Static" : "Replay"}
         </button>
+        {replayMode && (
+          <>
+            <div style={{ width: 1, height: 20, background: "var(--border)" }} />
+            <span
+              style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}
+            >
+              Speed
+            </span>
+            {SPEED_PRESETS.map((p) => (
+              <button
+                key={p.label}
+                className="btn-ghost"
+                onClick={() => setSpeed(p.value)}
+                title={`${p.label} speed (${p.value}ms per transaction)`}
+                style={{
+                  padding: "3px 8px",
+                  fontSize: 10,
+                  fontFamily: "JetBrains Mono, monospace",
+                  background:
+                    speed === p.value ? "rgba(0,229,255,0.2)" : undefined,
+                  borderColor:
+                    speed === p.value ? "rgba(0,229,255,0.36)" : undefined,
+                  color: speed === p.value ? "var(--accent-blue)" : undefined,
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </>
+        )}
       </div>
 
       {/* Zoom Controls */}
@@ -578,6 +1189,193 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
             display: "block",
           }}
         />
+      )}
+
+      {/* Flow loading overlay (replay mode) */}
+      {replayMode && flowLoading && allTxns.length === 0 && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(11,15,25,0.6)",
+          }}
+        >
+          <LoadingState variant="pulse" message="Loading transaction stream..." />
+        </div>
+      )}
+
+      {/* Replay playback controls */}
+      {replayMode && allTxns.length > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 16,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 10,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "8px 14px",
+            background: "rgba(11,15,25,0.9)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            backdropFilter: "blur(10px)",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.45)",
+          }}
+        >
+          <button className="btn-icon" onClick={resetReplay} title="Reset replay">
+            <RotateCcw size={13} />
+          </button>
+          <button
+            className="btn-icon"
+            onClick={() => setStep((s) => Math.max(0, s - 1))}
+            disabled={step === 0}
+            title="Previous transaction"
+          >
+            <SkipBack size={13} />
+          </button>
+          <button
+            className="btn-icon"
+            onClick={() => {
+              if (playing) {
+                setPlaying(false);
+              } else if (step >= allTxns.length - 1 && !hasMore) {
+                resetReplay();
+              } else {
+                setPlaying(true);
+              }
+            }}
+            title={playing ? "Pause" : "Play"}
+          >
+            {playing ? <Pause size={13} /> : <Play size={13} />}
+          </button>
+          <button
+            className="btn-icon"
+            onClick={() => {
+              if (step >= allTxns.length - 1) {
+                if (hasMore) loadFlowPage(fetchOffset);
+              } else {
+                setStep((s) => Math.min(allTxns.length - 1, s + 1));
+              }
+            }}
+            disabled={step >= allTxns.length - 1 && !hasMore}
+            title="Next transaction"
+          >
+            <SkipForward size={13} />
+          </button>
+          <div style={{ width: 1, height: 20, background: "var(--border)" }} />
+          <Timer size={12} style={{ color: "var(--text-muted)" }} />
+          {SPEED_PRESETS.map((p) => (
+            <button
+              key={p.label}
+              className="btn-ghost"
+              onClick={() => setSpeed(p.value)}
+              title={`${p.label} speed (${p.value}ms per transaction)`}
+              style={{
+                padding: "3px 8px",
+                fontSize: 10,
+                fontFamily: "JetBrains Mono, monospace",
+                background:
+                  speed === p.value ? "rgba(0,229,255,0.2)" : undefined,
+                borderColor:
+                  speed === p.value ? "rgba(0,229,255,0.36)" : undefined,
+                color: speed === p.value ? "var(--accent-blue)" : undefined,
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+          <input
+            type="range"
+            min={250}
+            max={2000}
+            step={50}
+            value={speed}
+            onChange={(e) => setSpeed(Number(e.target.value))}
+            style={{ width: 90 }}
+            title="Custom speed"
+          />
+          <span
+            style={{
+              fontSize: 10,
+              color: "var(--text-muted)",
+              minWidth: 42,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+          >
+            {speed}ms
+          </span>
+          <div style={{ width: 1, height: 20, background: "var(--border)" }} />
+          <span
+            style={{
+              fontSize: 11,
+              fontFamily: "JetBrains Mono, monospace",
+              color: "var(--accent-purple)",
+              minWidth: 72,
+            }}
+          >
+            {Math.min(step + 1, allTxns.length)} / {flowTotal}
+            {hasMore && flowLoading ? " (loading…)" : ""}
+          </span>
+        </div>
+      )}
+
+      {/* Current transaction info panel */}
+      {replayMode && currentTxn && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 16,
+            left: 16,
+            zIndex: 10,
+            maxWidth: 320,
+            padding: "10px 14px",
+            background: "rgba(11,15,25,0.9)",
+            border: "1px solid var(--border)",
+            borderLeft: `3px solid ${
+              currentTxn.label ? "var(--accent-red)" : "var(--accent-green)"
+            }`,
+            borderRadius: 10,
+            backdropFilter: "blur(10px)",
+            fontFamily: "JetBrains Mono, monospace",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 9,
+              color: "var(--text-muted)",
+              textTransform: "uppercase",
+              letterSpacing: "0.8px",
+              marginBottom: 4,
+            }}
+          >
+            Transaction {step + 1} ·{" "}
+            {currentTxn.label ? "SUSPICIOUS" : "Normal"}
+          </div>
+          <div
+            style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 4 }}
+          >
+            {currentTxn.sender}
+            <span style={{ color: "var(--accent-blue)", margin: "0 6px" }}>→</span>
+            {currentTxn.receiver}
+          </div>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: currentTxn.label ? "var(--accent-red)" : "var(--text-primary)",
+            }}
+          >
+            {formatAmount(currentTxn.amount)}
+          </div>
+          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+            {currentTxn.timestamp} · {currentTxn.transaction_type}
+          </div>
+        </div>
       )}
 
       {/* Tooltip */}

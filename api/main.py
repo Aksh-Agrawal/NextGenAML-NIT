@@ -118,12 +118,52 @@ app.include_router(upload.router)
 # ── Frontend static files ─────────────────────────────
 _frontend_dir = Path(__file__).resolve().parent.parent / "nextgen-frontend" / "out"
 
+_next_dir = _frontend_dir / "_next"
+if _next_dir.exists():
+    app.mount("/_next", StaticFiles(directory=str(_next_dir)), name="next-assets")
+
 if _frontend_dir.exists():
     app.mount("/static", StaticFiles(directory=str(_frontend_dir)), name="static")
 
 
 @app.get("/", include_in_schema=False)
 async def serve_frontend():
+    index_file = _frontend_dir / "index.html"
+    if index_file.exists():
+        return FileResponse(str(index_file))
+
+    return JSONResponse(
+        {
+            "message": "NextGenAML API is running.",
+            "docs": "/docs",
+            "health": "/health",
+        }
+    )
+
+
+@app.get("/{path:path}", include_in_schema=False)
+async def serve_frontend_routes(path: str):
+    """Serve the Next.js static export (clean URLs + SPA fallback)."""
+    if not _frontend_dir.exists():
+        return JSONResponse(
+            {
+                "message": "NextGenAML API is running.",
+                "docs": "/docs",
+                "health": "/health",
+            }
+        )
+
+    # Direct file hit (e.g. /_next/static/... is handled by the mounts above)
+    file = _frontend_dir / path
+    if file.is_file():
+        return FileResponse(str(file))
+
+    # Static export generates <route>.html (e.g. /fund-flow -> fund-flow.html)
+    html = _frontend_dir / f"{path}.html"
+    if html.is_file():
+        return FileResponse(str(html))
+
+    # SPA fallback: unknown deep links render the root shell
     index_file = _frontend_dir / "index.html"
     if index_file.exists():
         return FileResponse(str(index_file))

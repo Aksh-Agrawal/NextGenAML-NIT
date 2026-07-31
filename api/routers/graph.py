@@ -27,6 +27,14 @@ def get_subgraph(account_id: str, hops: int = 2):
     return SubgraphResponse(**data)
 
 
+@router.get("/flow")
+def get_transaction_flow(account_id: str | None = None, limit: int = 200, offset: int = 0):
+    """Chronological transaction stream for one-transaction-at-a-time playback."""
+    from api.main import graph_manager
+
+    return graph_manager.get_transaction_flow(account_id, limit, offset)
+
+
 @router.get("/full")
 def get_full_graph(limit: int = 500):
     from api.main import graph_manager

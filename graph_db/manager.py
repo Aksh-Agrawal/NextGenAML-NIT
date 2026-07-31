@@ -253,6 +253,52 @@ class GraphManager:
             "total_in_graph": len(all_nodes),
         }
 
+    def get_transaction_flow(
+        self,
+        account_id: str | None = None,
+        limit: int = 200,
+        offset: int = 0,
+    ) -> dict:
+        """Return transactions in chronological order for streaming replay.
+
+        Used to animate the fund flow one transaction at a time.
+        When *account_id* is given, only that account's transactions are
+        returned; otherwise the whole ledger (capped by *limit*).
+        """
+        if self._df is None:
+            return {"account_id": account_id, "transactions": [], "total": 0}
+
+        df = self._df
+        if account_id:
+            df = df[
+                (df["sender_account"] == account_id)
+                | (df["receiver_account"] == account_id)
+            ]
+
+        df = df.sort_values("timestamp").reset_index(drop=True)
+        total = len(df)
+        window = df.iloc[offset : offset + limit]
+
+        rows = []
+        for i, (_, row) in enumerate(window.iterrows()):
+            rows.append({
+                "index": offset + i,
+                "sender": str(row["sender_account"]),
+                "receiver": str(row["receiver_account"]),
+                "amount": float(row["amount"]),
+                "currency": str(row.get("currency", "INR")),
+                "timestamp": str(row["timestamp"]),
+                "transaction_type": str(row.get("transaction_type", "transfer")),
+                "label": int(row.get("label", 0)),
+            })
+        return {
+            "account_id": account_id,
+            "transactions": rows,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
+
     def detect_circular_patterns(self, min_length: int = 3, max_length: int = 6, limit: int = 50) -> list[dict]:
         """Find circular transaction flows (A→B→C→…→A).
 

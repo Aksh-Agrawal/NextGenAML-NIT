@@ -57,6 +57,25 @@ export interface SubgraphResponse {
   center_account?: string;
 }
 
+export interface FlowTransaction {
+  index: number;
+  sender: string;
+  receiver: string;
+  amount: number;
+  currency: string;
+  timestamp: string;
+  transaction_type: string;
+  label: number;
+}
+
+export interface TransactionFlowResponse {
+  account_id: string | null;
+  transactions: FlowTransaction[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface ExplainResponse {
   account_id: string;
   risk_score: number;
@@ -228,6 +247,14 @@ export const api = {
     fetchAPI<SubgraphResponse>(
       `/graph/subgraph/${encodeURIComponent(accountId)}?hops=${hops}`,
     ),
+
+  transactionFlow: (accountId?: string, limit = 200, offset = 0) => {
+    const params = new URLSearchParams();
+    if (accountId) params.set("account_id", accountId);
+    params.set("limit", String(limit));
+    params.set("offset", String(offset));
+    return fetchAPI<TransactionFlowResponse>(`/graph/flow?${params.toString()}`);
+  },
 
   explain: (accountId: string) =>
     fetchAPI<ExplainResponse>(`/explain/${encodeURIComponent(accountId)}`),
