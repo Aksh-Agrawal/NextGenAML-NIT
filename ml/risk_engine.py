@@ -4,9 +4,12 @@ and statistical anomaly signals into a final risk score.
 """
 
 from __future__ import annotations
+import os
 import numpy as np
+from loguru import logger
 from graph_db.manager import GraphManager
 from ml.inference import InferenceEngine
+from ml.fusion_gate import CHECKPOINT_DIR, load_fusion_gate
 
 
 class RiskEngine:
@@ -17,11 +20,21 @@ class RiskEngine:
         ml_score      = GNN/classifier fraud probability
         pattern_score = 1 if account appears in any detected pattern, 0 otherwise
         anomaly_score = statistical anomaly (velocity, amount outlier, etc.)
+
+    Fusion step:
+        USE_ADAPTIVE_FUSION=True (default) + checkpoint present:
+            per-account weights from the learned FusionGate
+        otherwise: static weights W_ML / W_PATTERN / W_ANOMALY (0.5/0.3/0.2)
     """
 
     W_ML = 0.5
     W_PATTERN = 0.3
     W_ANOMALY = 0.2
+
+    # Adaptive fusion toggle: env var USE_ADAPTIVE_FUSION in {"1","true","yes","on"}
+    USE_ADAPTIVE_FUSION = os.getenv("USE_ADAPTIVE_FUSION", "true").strip().lower() in (
+        "1", "true", "yes", "on",
+    )
 
     def __init__(self, graph_manager: GraphManager, inference: InferenceEngine):
         self.gm = graph_manager
@@ -29,6 +42,25 @@ class RiskEngine:
         self._pattern_accounts: set[str] = set()
         self._patterns_computed = False
         self._all_scores_cache: list[dict] | None = None
+        self.fusion_gate = None
+        self._fusion_meta: dict = {}
+        self._load_fusion_gate()
+
+    def _load_fusion_gate(self):
+        """Load the learned fusion gate if adaptive fusion is enabled."""
+        if not self.USE_ADAPTIVE_FUSION:
+            logger.info("Adaptive fusion disabled (USE_ADAPTIVE_FUSION=false) - using static 0.5/0.3/0.2")
+            return
+        gate, meta = load_fusion_gate(CHECKPOINT_DIR)
+        if gate is None:
+            logger.warning(
+                f"Adaptive fusion enabled but no checkpoint in {CHECKPOINT_DIR} - "
+                "falling back to static 0.5/0.3/0.2"
+            )
+            return
+        self.fusion_gate = gate
+        self._fusion_meta = meta or {}
+        logger.info(f"Adaptive fusion gate loaded ({meta.get('model_format', 'unknown')})")
 
     def compute_patterns(self):
         """Pre-compute pattern detection results."""
@@ -78,12 +110,33 @@ class RiskEngine:
         # Anomaly score
         anomaly_score = self._compute_anomaly(account_id)
 
-        # Weighted combination
-        final_score = (
-            self.W_ML * ml_score
-            + self.W_PATTERN * pattern_score
-            + self.W_ANOMALY * anomaly_score
-        )
+        feat = self.gm.get_account_features(account_id) or {}
+        volume = feat.get("total_sent", 0) + feat.get("total_received", 0)
+
+        # ── Fusion step (static or adaptive) ───────────
+        if self.fusion_gate is not None:
+            w = self._fusion_weights(ml_score, pattern_score, anomaly_score, feat)
+            final_score = (
+                w[0] * ml_score
+                + w[1] * pattern_score
+                + w[2] * anomaly_score
+            )
+            fusion_weights = {
+                "ml": round(float(w[0]), 4),
+                "pattern": round(float(w[1]), 4),
+                "anomaly": round(float(w[2]), 4),
+            }
+        else:
+            final_score = (
+                self.W_ML * ml_score
+                + self.W_PATTERN * pattern_score
+                + self.W_ANOMALY * anomaly_score
+            )
+            fusion_weights = {
+                "ml": self.W_ML,
+                "pattern": self.W_PATTERN,
+                "anomaly": self.W_ANOMALY,
+            }
         final_score = min(1.0, max(0.0, final_score))
 
         # Determine pattern type
@@ -99,9 +152,6 @@ class RiskEngine:
         else:
             status = "Verified"
 
-        feat = self.gm.get_account_features(account_id) or {}
-        volume = feat.get("total_sent", 0) + feat.get("total_received", 0)
-
         return {
             "account_id": account_id,
             "risk_score": round(final_score * 100, 1),
@@ -112,7 +162,35 @@ class RiskEngine:
             "status": status,
             "volume_30d": volume,
             "transaction_count": feat.get("tx_count", 0),
+            "fusion_weights": fusion_weights,
         }
+
+    def _fusion_weights(self, ml_score, pattern_score, anomaly_score, feat) -> np.ndarray:
+        """Run the learned gate to get [w_ml, w_pattern, w_anomaly] for one account."""
+        out_deg_max = float(self._fusion_meta.get("out_deg_max", 1) or 1)
+        tx_count_max = float(self._fusion_meta.get("tx_count_max", 1) or 1)
+        out_deg = float(feat.get("out_degree", 0))
+        tx_count = float(feat.get("tx_count", 0))
+        x = np.array(
+            [[
+                ml_score,
+                pattern_score,
+                anomaly_score,
+                min(out_deg / out_deg_max, 1.0),
+                min(tx_count / tx_count_max, 1.0),
+            ]],
+            dtype=np.float64,
+        )
+        try:
+            w = self.fusion_gate.predict_weights(x)[0]
+        except Exception as e:
+            logger.warning(f"Fusion gate inference failed ({e}) - using static weights")
+            return np.array([self.W_ML, self.W_PATTERN, self.W_ANOMALY])
+        w = np.clip(w, 0.0, 1.0)
+        s = float(w.sum())
+        if s <= 0:
+            return np.array([self.W_ML, self.W_PATTERN, self.W_ANOMALY])
+        return w / s
 
     def score_all(self) -> list[dict]:
         """Score every account in the graph."""

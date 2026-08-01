@@ -90,6 +90,7 @@ class AccountRisk(BaseModel):
     status: AccountStatus
     volume_30d: float
     transaction_count: int
+    fusion_weights: dict = {}
 
 
 class GraphNode(BaseModel):

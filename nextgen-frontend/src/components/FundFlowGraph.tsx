@@ -361,6 +361,16 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       );
     }
 
+    // Safety: d3 forceLink requires every link endpoint to exist in the
+    // simulation's node set. Any links left dangling (endpoint filtered out
+    // above) would throw "node not found" – drop them so the graph renders.
+    const visibleNodeIds = new Set(nodes.map((n) => n.id));
+    links = links.filter(
+      (l) =>
+        visibleNodeIds.has(l.source as string) &&
+        visibleNodeIds.has(l.target as string),
+    );
+
     // Calculate positions based on layout
     let startPos: Map<string, { x: number; y: number }> = new Map();
     if (layout === "circular") {

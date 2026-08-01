@@ -22,6 +22,12 @@ class Settings:
     GNN_MODEL_TYPE: str = os.getenv("GNN_MODEL_TYPE", "graphsage")
     GNN_FRAUD_THRESHOLD: float = float(os.getenv("GNN_FRAUD_THRESHOLD", "0.75"))
 
+    # --- Risk fusion ---
+    USE_ADAPTIVE_FUSION: bool = os.getenv("USE_ADAPTIVE_FUSION", "true").strip().lower() in (
+        "1", "true", "yes", "on",
+    )
+    CHECKPOINTS_DIR: Path = BASE_DIR / "ml" / "checkpoints"
+
     # --- Training ---
     BATCH_SIZE: int = int(os.getenv("BATCH_SIZE", "64"))
     NUM_EPOCHS: int = int(os.getenv("NUM_EPOCHS", "50"))
@@ -56,3 +62,4 @@ settings = Settings()
 settings.DATA_DIR.mkdir(exist_ok=True)
 settings.SAVED_MODELS_DIR.mkdir(exist_ok=True)
 settings.LOGS_DIR.mkdir(exist_ok=True)
+settings.CHECKPOINTS_DIR.mkdir(exist_ok=True)

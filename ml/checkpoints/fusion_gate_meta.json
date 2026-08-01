@@ -1,0 +1,24 @@
+{
+  "model_format": "sklearn",
+  "out_deg_max": 31.0,
+  "tx_count_max": 40.0,
+  "threshold": 0.5,
+  "static_weights": {
+    "ml": 0.5,
+    "pattern": 0.3,
+    "anomaly": 0.2
+  },
+  "ablation": {
+    "static": {
+      "precision": 0.75,
+      "recall": 1.0,
+      "f1": 0.8571
+    },
+    "adaptive": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "version": 1
+}
