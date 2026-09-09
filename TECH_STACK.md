@@ -64,6 +64,7 @@
 | ---------------------------- | ----------------------------------------------------------------------- |
 | **react-syntax-highlighter** | Syntax-highlighted XML preview for SAR reports (FIU-IND ARF/TRF format) |
 | **html-to-image**            | Export graph canvas to PNG image                                        |
+| **qrcode.react**             | QR code rendering on the simulator UPI phone                             |
 
 ### 1.6 Frontend Architecture
 
@@ -93,9 +94,22 @@ src/
 │   ├── sar-report/               # SAR Report generator
 │   │   ├── layout.tsx
 │   │   └── page.tsx              # Form → Gemini API → XML preview
+│   ├── simulator/                # Real-time UPI transaction simulator
+│   │   ├── layout.tsx
+│   │   └── page.tsx              # Live feed, stream controls, UPI phone, alerts
 │   ├── layout.tsx                # Root layout (fonts, metadata)
 │   └── globals.css               # Complete design system (890 lines)
 ├── components/
+│   ├── simulator/                # Simulator UI components (8 files)
+│   │   ├── StreamControls.tsx    # Start / pause / resume / stop + TPS slider
+│   │   ├── PresetPicker.tsx      # Select fraud/behavior preset
+│   │   ├── UpiPhone.tsx          # Phone mockup with QR code (qrcode.react)
+│   │   ├── AlertToast.tsx        # Live fraud-alert toasts
+│   │   ├── HistoryTable.tsx      # Transaction history table
+│   │   ├── LiveGraph.tsx         # Stream-velocity sparkline (recharts)
+│   │   ├── LiveStats.tsx         # Live counters (balance, TPS, totals)
+│   │   └── LiveTimeline.tsx      # Scrolling live event timeline
+│   ├── landing/
 │   ├── landing/                  # Landing page components (10 files)
 │   │   ├── Hero.tsx              # Canvas-based animated hero
 │   │   ├── Metrics.tsx           # Animated counters
@@ -116,8 +130,18 @@ src/
 └── lib/
     ├── api.ts                    # Full API client (18+ endpoints, typed)
     ├── utils.ts                  # Helpers: cn, formatAmount, getRiskColor, timeAgo
+    ├── useLiveTransactions.ts    # WebSocket client for live stream (simulator)
     └── landing-data.ts           # Static data for landing page content
 ```
+
+### 1.7 Real-Time Simulator UI (WebSocket)
+
+| Technology       | Purpose                                                                                 |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| **WebSocket**    | Live push of transaction envelopes (`simulatorStream`) to the simulator page            |
+| **qrcode.react** | Renders the payee QR code on the mock UPI phone (UPI-id based)                          |
+| **useLiveTransactions** | Hook managing the WS connection, reconnect, and buffering of pushed envelopes     |
+| **TanStack Query** | REST side (accounts, presets, history, stats) with `staleTime` instead of auto-refresh |
 
 ---
 
@@ -127,11 +151,12 @@ src/
 
 | Technology    | Version | Purpose                                     |
 | ------------- | ------- | ------------------------------------------- |
-| **Python**    | 3.11    | Runtime                                     |
+| **Python**    | 3.14    | Runtime                                     |
 | **FastAPI**   | 0.135.1 | Async REST API microservice framework       |
 | **Uvicorn**   | 0.41.0  | ASGI server with hot-reload support         |
 | **Pydantic**  | 2.12.5  | Request/response validation with type hints |
 | **Starlette** | 0.52.1  | ASGI framework (underlying FastAPI)         |
+| **websockets**| 16.0    | WebSocket support for real-time streaming   |
 
 ### 2.2 Backend Libraries
 
@@ -142,14 +167,13 @@ src/
 | **python-dotenv**     | 1.2.2   | Environment variable loading                    |
 | **python-multipart**  | 0.0.22  | Multipart form data (CSV file uploads)          |
 | **PyYAML**            | 6.0.3   | YAML config parsing                             |
-| **prometheus-client** | —       | `/metrics` endpoint for monitoring and scraping |
 | **websockets**        | 16.0    | WebSocket support for real-time features        |
 
-### 2.3 Backend Architecture (17 REST Endpoints)
+### 2.3 Backend Architecture (14 REST Routers)
 
 ```
 api/
-├── main.py              # App entry: lifespan, CORS, static files, 12 route registrations
+├── main.py              # App entry: lifespan, CORS, static files, route registrations
 ├── config.py            # Settings from env vars (.env)
 ├── schemas.py           # Pydantic request/response models
 └── routers/
@@ -164,8 +188,55 @@ api/
     ├── model_info.py    # GET /model/info — model metadata & performance metrics
     ├── reports.py       # POST /reports/generate — SAR report generation
     ├── timeline.py      # Transaction timeline
-    └── upload.py        # POST /upload/csv — CSV upload with validation
+    ├── upload.py        # POST /upload/csv — CSV upload with validation
+    ├── simulator.py     # /simulator/* — UPI simulator REST + WebSocket stream
+    └── (stream)         # WS /simulator/stream — live transaction envelopes
 ```
+
+### 2.5 Real-Time UPI Transaction Simulator
+
+A full simulated UPI payments environment used to demonstrate live AML
+monitoring (streaming transactions, velocity analytics, instant fraud
+alerts) without an external payment rail.
+
+| Component            | File                        | Responsibility                                                             |
+| -------------------- | --------------------------- | -------------------------------------------------------------------------- |
+| **Stream engine**    | `simulator/stream_engine.py` | Async TPS-throttled generator; state machine (`idle/running/paused/stopped`) |
+| **Preset registry**  | `simulator/presets.py`       | 9 scripted fraud/behavior scenarios (see below)                             |
+| **Service layer**    | `simulator/service.py`       | Orchestrates payments, persistence, stats, history                         |
+| **Ledger**           | `simulator/ledger.py`        | Append-only JSONL ledger + in-memory account balances                       |
+| **Seed accounts**    | `simulator/seed_accounts.py`  | 8 demo accounts (SBIN-UPI IDs) with seeded balances                        |
+| **Alert registry**   | `simulator/alert_registry.py` | Rule-based fraud alerts raised from streamed txns                           |
+| **Loggers**          | `simulator/loggers.py`        | Rotating structured logs for streamed transactions                          |
+
+**Stream control contract** — every control call returns `state`:
+
+| Endpoint                           | Method | Body / Notes                                              |
+| ---------------------------------- | ------ | --------------------------------------------------------- |
+| `/simulator/stream/start`          | POST   | `{ "tps": 5, "preset": null }` → `{ "state": "running" }` |
+| `/simulator/stream/pause`          | POST   | → `{ "state": "paused" }`                                 |
+| `/simulator/stream/resume`         | POST   | → `{ "state": "running" }`                                |
+| `/simulator/stream/stop`           | POST   | → `{ "state": "stopped" }`                                |
+| `/simulator/stream` (WebSocket)    | WS     | Pushes `{ type: "transaction" }` envelopes + stats        |
+
+**REST endpoints:** `/simulator/accounts` (8 seeded), `/simulator/stats`,
+`/simulator/presets`, `/simulator/history` (`{ items, total }`),
+`/simulator/alerts`, `/simulator/pay`, `/simulator/simulate`,
+`/simulator/presets/{name}/control`.
+
+**Presets (9):**
+
+| Preset              | Scenario                                                                 |
+| ------------------- | ------------------------------------------------------------------------ |
+| `money_laundering`  | Large layering chain A→B→C→D, near-parallel ₹180–250K movements          |
+| `structuring`       | Sub-threshold cluster just below the ₹10K reporting threshold            |
+| `layering`          | Multi-hop layering through 5 mule accounts, decreasing amounts           |
+| `circular_flow`     | Funds round-tripping back to the originator                               |
+| `rapid_transfers`   | High-frequency burst of small transfers                                   |
+| `normal_user`       | Benign daily spending pattern                                            |
+| `business_payments` | Regular B2B invoice-style payments                                       |
+| `salary_payments`   | Periodic salary credits                                                   |
+| `cash_withdrawal`   | Repeated near-limit cash-out movements                                    |
 
 ### 2.4 Data Processing & Scientific Stack
 
@@ -251,14 +322,22 @@ api/
 ```
 ml/
 ├── __init__.py
-├── model.py           # AMLGraphSAGE, LineMVGNN, FallbackClassifier, model factory
-├── inference.py       # InferenceEngine: feature building, prediction, model save/load
-└── risk_engine.py     # RiskEngine: composite scoring, pattern integration, anomaly detection
-
+├── model.py            # AMLGraphSAGE, LineMVGNN, FallbackClassifier, model factory
+├── inference.py        # InferenceEngine: feature building, prediction, model save/load
+├── risk_engine.py      # RiskEngine: composite scoring, pattern integration, anomaly detection
+├── fusion_gate.py      # Adaptive fusion of graph + tabular model outputs
+└── train_fusion_gate.py# Training script for the fusion gate
 training/
 ├── __init__.py
-└── train.py           # Standalone training script (argparse: --model, --epochs, --csv_path)
+└── train.py            # Standalone training script (argparse: --model, --epochs, --csv_path)
 ```
+
+> **Note on the current environment:** PyTorch / PyTorch-Geometric are not
+> installed on the dev machine, so inference falls back to the scikit-learn
+> `GradientBoostingClassifier` path (`FallbackClassifier`). `inference.py`
+> loads a freshly trained `.pt`/`.pkl` model and `risk_engine.score_all()`
+> recomputes composite risk for the whole graph on load — always keep the
+> `saved_models/aml_model.pt` model current or risk scores collapse.
 
 ### 3.8 Other ML Concepts Used
 
@@ -283,6 +362,8 @@ training/
 | **Memgraph**     | latest (docker) | In-memory graph database — Bolt protocol (port 7687), HTTP (7444), Lab UI (3000)   |
 | **Neo4j Driver** | 6.1.0           | Python Bolt protocol connector (compatible with Memgraph)                          |
 | **NetworkX**     | 3.6.1           | In-process directed graph (DiGraph) used as primary graph store — always available |
+| **JSONL**        | —               | Append-only event sourcing for simulator ledger + alerts (`data/simulator_*.jsonl`) |
+| **CSV**          | —               | Transaction import source (`data/uploaded_transactions.csv`)                       |
 
 ### 4.2 Graph Data Model
 
@@ -377,39 +458,45 @@ api:
                      │  ┌────┴──────────────┴──────────────┴────────────┴───┐  │
                      │  │            TanStack React Query (API Client)      │  │
                      │  └────────────────────────┬──────────────────────────┘  │
-                     └───────────────────────────┼─────────────────────────────┘
-                                                 │ HTTP (REST)
-                     ┌───────────────────────────┼─────────────────────────────┐
-                     │              BACKEND (FastAPI / Python 3.11)            │
                      │  ┌────────────────────────┴──────────────────────────┐  │
-                     │  │             12 API Routers (17 endpoints)         │  │
-                     │  │  /health  /predict  /graph  /patterns  /alerts    │  │
-                     │  │  /explain /dashboard /model  /reports  /upload    │  │
-                     │  └────────────────────────┬──────────────────────────┘  │
-                     │                           │                             │
-                     │  ┌────────────────────────┴──────────────────────────┐  │
-                     │  │              Risk Engine (Composite Scoring)      │  │
-                     │  │   0.5×ML + 0.3×Pattern + 0.2×Anomaly → score    │  │
-                     │  └────┬──────────────────────┬───────────────────────┘  │
-                     │       │                      │                          │
-                     │  ┌────┴──────┐         ┌─────┴──────┐                   │
-                     │  │ Inference  │         │  Pattern   │                   │
-                     │  │  Engine    │         │ Detector   │                   │
-                     │  │ (GNN/GBDT) │         │ (3 types)  │                   │
-                     │  └─────┬─────┘         └──────┬──────┘                   │
-                     │        │                      │                          │
-                     │  ┌─────┴──────────────────────┴──────┐                   │
-                     │  │         Graph Manager (NetworkX)   │                   │
-                     │  │   DiGraph — 500K+ tx, 5K+ accounts │                   │
-                     │  └────────┬──────────────────────┬────┘                   │
-                     │           │                      │                        │
-                     │           ▼                      ▼                        │
+                     │  │        Simulator page (WS + qrcode.react)        │  │
+                     │  │     useLiveTransactions → live stream feed       │  │
+                     │  └───────────────────────────────────────────────────┘  │
+                     └──────────────┬───────────────────────┬──────────────────┘
+                                    │ HTTP (REST)           │ WS (envelopes)
+                     ┌──────────────┴───────────────────────┴──────────────────┐
+                     │              BACKEND (FastAPI / Python 3.14)            │
+                     │  ┌────────────────────────┬──────────────────────────┐  │
+                     │  │  14 API Routers        │  /simulator/stream (WS)  │  │
+                     │  │  /health /predict /graph│  stream_engine + presets│  │
+                     │  │  /patterns /alerts /   │  ledger + alert_registry│  │
+                     │  │  /explain /upload /sim │  (JSONL event sourcing)  │  │
+                     │  └───────────────┬────────┴──────────┬───────────────┘  │
+                     │                  │                   │                  │
+                     │  ┌───────────────┴─────────┐  ┌──────┴──────────────┐   │
+                     │  │      Risk Engine        │  │  Simulator Ledger   │   │
+                     │  │   0.5×ML + 0.3×Pattern  │  │  balances + txns    │   │
+                     │  │   + 0.2×Anomaly → score │  │  (JSONL files)      │   │
+                     │  └─────┬──────────────┬────┘  └─────────────────────┘   │
+                     │        │              │                                 │
+                     │  ┌─────┴──────┐  ┌─────┴──────┐                          │
+                     │  │ Inference  │  │  Pattern   │                          │
+                     │  │  Engine    │  │ Detector   │                          │
+                     │  │ (GNN/GBDT) │  │ (3 types)  │                          │
+                     │  └─────┬─────┘  └──────┬──────┘                          │
+                     │        │               │                                 │
+                     │  ┌─────┴───────────────┴──────┐                          │
+                     │  │      Graph Manager (NetworkX)│                       │
+                     │  │   DiGraph — 5.7K+ tx, 525 accs│                      │
+                     │  └────────┬──────────────────┬────┘                      │
+                     │           │                  │                           │
+                     │           ▼                  ▼                           │
                      │  ┌──────────────┐    ┌──────────────────┐                │
                      │  │  Memgraph    │    │  CSV Ingestion    │                │
                      │  │  (Optional)  │    │  (pandas → nx)    │                │
                      │  └──────────────┘    └──────────────────┘                │
                      └──────────────────────────────────────────────────────────┘
-                                                 │ Gemini API
+                                                  │ Gemini API
                      ┌───────────────────────────┼─────────────────────────────┐
                      │             LLM (Google Gemini 2.0 Flash)                │
                      │  ┌────────────────────────┴──────────────────────────┐  │
@@ -430,10 +517,11 @@ api:
 | Inference Latency         | ~15 ms            | ~12 ms per account                                                                |
 | VRAM Usage                | < 7 GB            | < 7 GB (RTX 4050, 8 GB limit)                                                     |
 | Training Time             | ~20 min           | ~20 min (50 epochs)                                                               |
-| Dataset Volume            | 500K transactions | 500K transactions                                                                 |
-| Account Coverage          | 5K accounts       | 5K accounts                                                                       |
+| Dataset Volume            | 500K transactions | Dev dataset: 5,760 transactions (5750 uploaded + 22 test + simulator)             |
+| Account Coverage          | 5K accounts       | 525 accounts (dev)                                                                 |
 | AML Typologies Detected   | 5                 | 5 (Rapid Layering, Circular Flows, Structuring, Dormant Activation, KYC Mismatch) |
 | Time to SAR Report        | < 30 seconds      | CSV upload → FIU-IND XML                                                          |
+| Simulator Stream          | —                 | TPS 1–100 configurable; live WS envelopes + fraud alerts                          |
 
 ---
 
@@ -454,6 +542,7 @@ api:
 | react-syntax-highlighter        | dependency    | ^16.1.1  |
 | react-countup                   | dependency    | ^6.5.3   |
 | html-to-image                   | dependency    | ^1.11.13 |
+| qrcode.react                    | dependency    | ^4.2.0   |
 | clsx                            | dependency    | ^2.1.1   |
 | tailwind-merge                  | dependency    | ^3.5.0   |
 | @types/d3                       | dependency    | ^7.4.3   |
@@ -482,15 +571,16 @@ api:
 | networkx               | 3.6.1   | Graph algorithms                    |
 | numpy                  | 2.4.3   | Numerical computing                 |
 | pandas                 | 3.0.1   | Data manipulation                   |
-| scikit-learn           | 1.8.0   | ML (GBDT fallback)                  |
+| scikit-learn           | 1.8.0   | ML (GBDT fallback — active in dev)         |
 | scipy                  | 1.17.1  | Scientific computing                |
 | joblib                 | 1.5.3   | Model serialization                 |
 | PyYAML                 | 6.0.3   | YAML parsing                        |
-| prometheus-client      | —       | Metrics endpoint                    |
-| torch                  | 2.1.0   | Deep learning framework (CUDA 11.8) |
-| torch_geometric        | —       | PyTorch Geometric (GNN library)     |
-| langchain              | —       | LLM orchestration                   |
-| langchain-google-genai | —       | Google Gemini integration           |
+| pytest                 | 9.1.1   | Test framework (dev)                |
+| httpx                  | 0.28.1  | Async HTTP client + TestClient      |
+| torch                  | —       | Deep learning framework — **optional, not installed in dev** |
+| torch_geometric        | —       | PyTorch Geometric (GNN library) — optional |
+| langchain              | —       | LLM orchestration — optional         |
+| langchain-google-genai | —       | Google Gemini integration — optional |
 
 ---
 
@@ -502,11 +592,22 @@ api:
 | **TypeScript strict mode** | Full type checking                                   |
 | **Uvicorn --reload**       | Hot-reload for backend development                   |
 | **Next.js Fast Refresh**   | Hot-reload for frontend development                  |
-| **Prometheus**             | Production monitoring and metrics scraping           |
+| **pytest 9.1.1**           | Backend test suite (36 tests)                        |
 | **docker-compose**         | Local development environment orchestration          |
 | **Render**                 | Cloud deployment with CI/CD                          |
 | **Git**                    | Version control                                      |
 
+### Test Suite (`tests/`)
+
+| File                          | Coverage                                          |
+| ----------------------------- | ------------------------------------------------- |
+| `test_api_simulator.py`       | Simulator REST + stream state-machine contract    |
+| `test_simulator_service.py`   | Simulator service/ledger behavior                 |
+| `test_graph_add_transaction.py` | Graph insertion + edge aggregation               |
+| `test_wallet.py`              | Wallet / account balance logic                    |
+
+Run with: `python -m pytest tests/ -q` (36 tests passing).
+
 ---
 
-_Document generated from the NextGenAML codebase — July 2026_
+_Document generated from the NextGenAML codebase — August 2026_

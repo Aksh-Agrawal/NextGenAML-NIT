@@ -85,56 +85,80 @@ class GraphManager:
         """Compute per-account features for ML and risk scoring."""
         df = self._df
         accounts = set(df["sender_account"]) | set(df["receiver_account"])
-
         for acc in accounts:
-            sent = df[df["sender_account"] == acc]
-            received = df[df["receiver_account"] == acc]
-            all_tx = pd.concat([sent, received])
+            self._account_features[acc] = self._compute_features_for(acc)
 
-            total_sent = sent["amount"].sum()
-            total_received = received["amount"].sum()
-            tx_count = len(all_tx)
-            avg_amount = all_tx["amount"].mean() if tx_count > 0 else 0
-            log_amount = float(np.log1p(total_sent + total_received))
+    def _compute_features_for(self, acc: str) -> dict:
+        """Compute the feature dict for a single account from the ledger df."""
+        df = self._df
+        sent = df[df["sender_account"] == acc]
+        received = df[df["receiver_account"] == acc]
+        all_tx = pd.concat([sent, received])
 
-            # Time features
-            if len(all_tx) > 1:
-                times = all_tx["timestamp"].sort_values()
-                velocity = times.diff().dt.total_seconds().dropna()
-                avg_velocity = velocity.mean() if len(velocity) > 0 else 0
-                min_velocity = velocity.min() if len(velocity) > 0 else 0
-            else:
-                avg_velocity = 0
-                min_velocity = 0
+        total_sent = sent["amount"].sum()
+        total_received = received["amount"].sum()
+        tx_count = len(all_tx)
+        avg_amount = all_tx["amount"].mean() if tx_count > 0 else 0
+        log_amount = float(np.log1p(total_sent + total_received))
 
-            # Hour encoding
+        # Time features
+        if len(all_tx) > 1:
+            times = all_tx["timestamp"].sort_values()
+            velocity = times.diff().dt.total_seconds().dropna()
+            avg_velocity = velocity.mean() if len(velocity) > 0 else 0
+            min_velocity = velocity.min() if len(velocity) > 0 else 0
+        else:
+            avg_velocity = 0
+            min_velocity = 0
+
+        # Hour encoding
+        if len(all_tx) > 0:
             hours = all_tx["timestamp"].dt.hour
-            avg_hour = hours.mean() if len(hours) > 0 else 12
-            sin_time = float(np.sin(2 * np.pi * avg_hour / 24))
-            cos_time = float(np.cos(2 * np.pi * avg_hour / 24))
+            avg_hour = hours.mean()
+        else:
+            avg_hour = 12
+        sin_time = float(np.sin(2 * np.pi * avg_hour / 24))
+        cos_time = float(np.cos(2 * np.pi * avg_hour / 24))
 
-            # Suspicious label ratio
-            label_ratio = float(all_tx["label"].mean()) if "label" in all_tx.columns else 0.0
+        # Suspicious label ratio
+        if "label" in all_tx.columns and len(all_tx) > 0:
+            label_ratio = float(all_tx["label"].mean())
+        else:
+            label_ratio = 0.0
 
-            # Degree
-            in_deg = self.G.in_degree(acc) if acc in self.G else 0
-            out_deg = self.G.out_degree(acc) if acc in self.G else 0
+        # Degree
+        in_deg = self.G.in_degree(acc) if acc in self.G else 0
+        out_deg = self.G.out_degree(acc) if acc in self.G else 0
 
-            features = {
-                "total_sent": float(total_sent),
-                "total_received": float(total_received),
-                "tx_count": int(tx_count),
-                "avg_amount": float(avg_amount),
-                "log_amount": log_amount,
-                "avg_velocity_sec": float(avg_velocity),
-                "min_velocity_sec": float(min_velocity),
-                "sin_time": sin_time,
-                "cos_time": cos_time,
-                "label_ratio": label_ratio,
-                "in_degree": in_deg,
-                "out_degree": out_deg,
-            }
-            self._account_features[acc] = features
+        return {
+            "total_sent": float(total_sent),
+            "total_received": float(total_received),
+            "tx_count": int(tx_count),
+            "avg_amount": float(avg_amount),
+            "log_amount": log_amount,
+            "avg_velocity_sec": float(avg_velocity),
+            "min_velocity_sec": float(min_velocity),
+            "sin_time": sin_time,
+            "cos_time": cos_time,
+            "label_ratio": label_ratio,
+            "in_degree": in_deg,
+            "out_degree": out_deg,
+        }
+
+    def _affected_accounts(self, sender: str, receiver: str) -> set[str]:
+        """Accounts whose features change: sender, receiver + their 1-hop neighbors."""
+        affected = {sender, receiver}
+        for acc in (sender, receiver):
+            if acc in self.G:
+                affected.update(self.G.predecessors(acc))
+                affected.update(self.G.successors(acc))
+        return affected
+
+    def _recompute_features(self, accounts: set[str] | list[str]):
+        """Recompute features for only the given accounts (incremental update)."""
+        for acc in accounts:
+            if acc in self.G:
+                self._account_features[acc] = self._compute_features_for(acc)
 
     def _edge_suspicious_score(self, u: str, v: str, data: dict) -> float:
         """Compute a 0-1 suspicious score for an edge blending multiple signals."""
@@ -169,6 +193,172 @@ class GraphManager:
             + tx_signal * 0.15
         )
         return round(min(max(score, 0.0), 1.0), 3)
+
+    # ── Incremental transaction ingestion ──────────────
+    def add_transaction(self, tx: dict) -> dict:
+        """Append one transaction to the ledger + graph without a full rebuild.
+
+        Recomputes features only for the sender, receiver and their 1-hop
+        neighbors, invalidates the pattern caches, and syncs Memgraph when a
+        connection is available (never raises on Memgraph failure).
+        """
+        sender = str(tx["sender"])
+        receiver = str(tx["receiver"])
+        amount = float(tx["amount"])
+        ts = pd.Timestamp(tx.get("timestamp") or datetime.now())
+        if ts.tzinfo is not None:
+            ts = ts.tz_convert(None)
+        label = int(tx.get("label", 0))
+
+        row = {
+            "sender_account": sender,
+            "receiver_account": receiver,
+            "amount": amount,
+            "timestamp": ts,
+            "currency": tx.get("currency", "INR"),
+            "transaction_type": tx.get("transaction_type", "transfer"),
+            "label": label,
+        }
+        for key, value in tx.items():
+            if key not in row:
+                row[key] = value
+
+        # 1. Append to the in-memory ledger DataFrame
+        if self._df is None:
+            self._df = pd.DataFrame(columns=list(row.keys()))
+        for col in row:
+            if col not in self._df.columns:
+                self._df[col] = None
+        self._df = pd.concat([self._df, pd.DataFrame([row])], ignore_index=True)
+        # Normalize dtypes (concat with an empty object frame upcasts columns)
+        self._df["timestamp"] = pd.to_datetime(self._df["timestamp"], errors="coerce")
+        self._df["amount"] = pd.to_numeric(self._df["amount"], errors="coerce")
+
+        # 2. Insert / update nodes and the aggregated directed edge
+        added_nodes = []
+        for acc in (sender, receiver):
+            if acc not in self.G:
+                self.G.add_node(acc, type="entity", label=acc, risk=0.0)
+                added_nodes.append(acc)
+
+        edge_new = not self.G.has_edge(sender, receiver)
+        if edge_new:
+            self.G.add_edge(
+                sender,
+                receiver,
+                total_amount=amount,
+                tx_count=1,
+                transactions=[row],
+                is_suspicious=bool(label),
+            )
+        else:
+            ed = self.G[sender][receiver]
+            ed["total_amount"] += amount
+            ed["tx_count"] += 1
+            ed["transactions"].append(row)
+            ed["is_suspicious"] = ed.get("is_suspicious", False) or bool(label)
+
+        # 3. Recompute features only for affected accounts
+        self._recompute_features(self._affected_accounts(sender, receiver))
+
+        # 4. Invalidate pattern caches (recomputed lazily / incrementally)
+        self._circular_cache.clear()
+        self._structuring_cache.clear()
+        self._dormant_cache.clear()
+
+        # 5. Optional incremental Memgraph sync (never fails the request)
+        self._incremental_memgraph_sync(sender, receiver)
+
+        edge = self.G[sender][receiver]
+        return {
+            "row": row,
+            "new_nodes": added_nodes,
+            "edge": {
+                "source": sender,
+                "target": receiver,
+                "total_amount": edge["total_amount"],
+                "tx_count": edge["tx_count"],
+                "is_new": edge_new,
+                "is_suspicious": edge.get("is_suspicious", False),
+            },
+        }
+
+    def _incremental_memgraph_sync(self, sender: str, receiver: str):
+        """MERGE the changed nodes + edge into Memgraph. Best-effort only."""
+        if not self._neo4j_driver:
+            return
+        try:
+            with self._neo4j_driver.session() as session:
+                for acc in (sender, receiver):
+                    session.run(
+                        "MERGE (a:Account {id: $id}) "
+                        "ON CREATE SET a.type = 'entity', a.label = $id",
+                        id=acc,
+                    )
+                edge = self.G[sender][receiver]
+                session.run(
+                    "MATCH (a:Account {id: $s}), (b:Account {id: $r}) "
+                    "MERGE (a)-[t:TRANSFER]->(b) "
+                    "ON CREATE SET t.amount = $amt, t.tx_count = $cnt "
+                    "ON MATCH SET t.amount = $amt, t.tx_count = $cnt",
+                    s=sender,
+                    r=receiver,
+                    amt=float(edge["total_amount"]),
+                    cnt=int(edge["tx_count"]),
+                )
+        except Exception as e:
+            logger.warning(f"Incremental Memgraph sync skipped: {e}")
+
+    # ── Targeted pattern helpers (incremental risk path) ─
+    def _in_small_cycle(self, acc: str, max_len: int = 6, max_visited: int = 400) -> bool:
+        """Cheap bounded DFS: is *acc* part of a directed cycle of len 3..max_len?"""
+        if acc not in self.G:
+            return False
+        visited = 0
+
+        def dfs(node: str, depth: int) -> bool:
+            nonlocal visited
+            if depth > max_len:
+                return False
+            for nxt in self.G.successors(node):
+                visited += 1
+                if nxt == acc and depth >= 2:
+                    return True
+                if visited > max_visited:
+                    return False
+                if dfs(nxt, depth + 1):
+                    return True
+            return False
+
+        return dfs(acc, 0)
+
+    def _sender_structuring(self, acc: str, window_minutes: float = 60) -> bool:
+        """Sender-side structuring: >=2 txns just below a threshold in a window."""
+        if self._df is None:
+            return False
+        sent = self._df[self._df["sender_account"] == acc]
+        if len(sent) < 2:
+            return False
+        sent = sent.sort_values("timestamp")
+        for thresh in (10_000, 50_000, 200_000, 500_000, 1_000_000):
+            below = sent[(sent["amount"] > thresh * 0.9) & (sent["amount"] < thresh)]
+            if len(below) >= 2:
+                span = (below["timestamp"].max() - below["timestamp"].min()).total_seconds() / 60
+                if span <= window_minutes:
+                    return True
+        return False
+
+    def _is_dormant_activation(self, acc: str, dormant_days: int = 30) -> bool:
+        """True when an account had a >= dormant_days gap between transactions."""
+        if self._df is None:
+            return False
+        txns = self._df[
+            (self._df["sender_account"] == acc) | (self._df["receiver_account"] == acc)
+        ].sort_values("timestamp")
+        if len(txns) < 2:
+            return False
+        gaps = txns["timestamp"].diff().dt.days.dropna()
+        return bool(gaps.empty is False and (gaps >= dormant_days).any())
 
     # ── Queries ────────────────────────────────────────
     def get_all_accounts(self) -> list[str]:

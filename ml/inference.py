@@ -221,7 +221,7 @@ class InferenceEngine:
         if not path.exists():
             return False
         try:
-            if path.suffix == ".pkl":
+            if path.suffix == ".pkl" or not _TORCH:
                 with open(path, "rb") as f:
                     self._model = pickle.load(f)
                 self._model_loaded = True

@@ -198,3 +198,41 @@ class DashboardMetrics(BaseModel):
     system_risk_score: float
     recent_activity: list[dict]
     trends: dict
+
+
+# ── Simulator ──────────────────────────────────────────
+class SimulatorPayRequest(BaseModel):
+    """One dummy UPI payment. Sender/receiver resolvable via account_id,
+    mobile number or UPI id."""
+
+    sender: str | None = None
+    mobile: str | None = None
+    upi_id: str | None = None
+    receiver: str | None = None
+    to_mobile: str | None = None
+    to_upi_id: str | None = None
+    amount: float = Field(gt=0)
+    remark: str = ""
+    device_id: str = ""
+    ip: str = ""
+    location: str = ""
+    channel: str = "UPI"
+    currency: str = "INR"
+    transaction_type: str = "transfer"
+
+
+class SimulatorSimulateRequest(BaseModel):
+    """Generate a single random / preset-driven transaction."""
+    preset: str | None = None
+
+
+class SimulatorStreamRequest(BaseModel):
+    """Start / pause / resume / stop the streaming engine."""
+    tps: int = Field(5, ge=1, le=100)
+    preset: str | None = None
+
+
+class SimulatorPresetRequest(BaseModel):
+    """Control a named fraud preset."""
+    action: str = "start"  # start | pause | resume | stop
+    tps: int = Field(5, ge=1, le=100)

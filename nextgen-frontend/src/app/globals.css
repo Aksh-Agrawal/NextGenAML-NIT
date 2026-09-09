@@ -659,6 +659,7 @@ h4 {
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   transition: background 0.15s ease;
+  
 }
 
 .alert-entry:hover {
@@ -765,6 +766,7 @@ h4 {
   border-radius: 12px;
   overflow: hidden;
   backdrop-filter: blur(8px);
+ 
 }
 
 /* ─── Accordion ─────────────────────────────────────── */

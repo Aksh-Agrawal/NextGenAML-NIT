@@ -167,6 +167,120 @@ export interface HealthResponse {
   total_transactions: number;
 }
 
+// ── Simulator (real-time UPI) ──────────────────────────
+
+export interface SimulatorAccount {
+  account_id: string;
+  name: string;
+  mobile: string;
+  upi_id: string;
+  balance: number;
+  risk_score: number;
+  channel: string;
+  city: string;
+  avatar_color: string;
+}
+
+export interface SimulatorTxnRisk {
+  score: number;
+  level: RiskLevel;
+  flags: string[];
+  reason: string;
+}
+
+export interface SimulatorAlert {
+  id: string;
+  transaction_id: string;
+  sender: string;
+  receiver: string;
+  amount: number;
+  severity: string;
+  reason: string;
+  created_at: string;
+}
+
+export interface SimulatorHistoryItem {
+  transaction_id: string;
+  sender: string;
+  receiver: string;
+  amount: number;
+  currency: string;
+  remark: string;
+  timestamp: string;
+  device_id: string;
+  ip: string;
+  location: string;
+  channel: string;
+  status: string;
+  failure_reason?: string | null;
+  risk_score: number;
+  risk_level: RiskLevel;
+  flags: string[];
+  reason: string;
+  sender_risk: number;
+  receiver_risk: number;
+}
+
+export interface SimulatorStreamState {
+  state: string;
+  tps: number;
+  preset: string | null;
+  processed: number;
+}
+
+export interface SimulatorStats {
+  today_transactions: number;
+  total_volume: number;
+  avg_amount: number;
+  risk_alerts: number;
+  high_risk_accounts: number;
+  active_accounts: number;
+  tps: number;
+  avg_risk_score: number;
+  total_transactions: number;
+  total_traffic_volume: number;
+  stream: SimulatorStreamState;
+}
+
+export interface SimulatorGraphDelta {
+  new_nodes: Array<{ id: string; label: string; risk: number }>;
+  new_edges: Array<{
+    source: string;
+    target: string;
+    amount: number;
+    tx_count: number;
+    is_new: boolean;
+    is_suspicious: boolean;
+    risk: number;
+  }>;
+  updated_node_ids: string[];
+}
+
+export interface LiveEnvelope {
+  type: string;
+  transaction: Omit<SimulatorHistoryItem, "risk_score" | "risk_level" | "flags" | "reason" | "sender_risk" | "receiver_risk">;
+  risk: {
+    sender?: { account_id: string; risk_score: number; status: string } | null;
+    receiver?: { account_id: string; risk_score: number; status: string } | null;
+  };
+  tx_risk: SimulatorTxnRisk;
+  alert: SimulatorAlert | null;
+  graph_delta: SimulatorGraphDelta;
+  stats: SimulatorStats;
+}
+
+export interface SimulatorPresetInfo {
+  name: string;
+  label: string;
+}
+
+export interface SimulatorHistoryResponse {
+  items: SimulatorHistoryItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 // ── Fetch Helpers ──────────────────────────────────────
 
 async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
@@ -299,4 +413,68 @@ export const api = {
 
   fullGraph: (limit = 200) =>
     fetchAPI<SubgraphResponse>(`/graph/full?limit=${limit}`),
+
+  // ── Simulator ────────────────────────────────────────
+  simulatorAccounts: () => fetchAPI<SimulatorAccount[]>("/simulator/accounts"),
+
+  simulatorPay: (payload: {
+    sender?: string;
+    receiver?: string;
+    amount: number;
+    mobile?: string;
+    to_mobile?: string;
+    upi_id?: string;
+    to_upi_id?: string;
+    remark?: string;
+    currency?: string;
+    device_id?: string;
+    ip?: string;
+    location?: string;
+    channel?: string;
+  }) =>
+    fetchAPI<LiveEnvelope>("/simulator/pay", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  simulatorSimulate: (payload: { preset?: string; amount?: number }) =>
+    fetchAPI<LiveEnvelope>("/simulator/simulate", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  simulatorStream: (action: "start" | "pause" | "resume" | "stop", tps = 5, preset?: string) =>
+    fetchAPI<SimulatorStreamState>(`/simulator/stream/${action}`, {
+      method: "POST",
+      body: JSON.stringify({ tps, preset }),
+    }),
+
+  simulatorPreset: (name: string, action: "start" | "pause" | "resume" | "stop", tps = 5) =>
+    fetchAPI<SimulatorStreamState>(`/simulator/preset/${name}`, {
+      method: "POST",
+      body: JSON.stringify({ action, tps }),
+    }),
+
+  simulatorHistory: (params?: Record<string, string | number>) => {
+    const qs = new URLSearchParams();
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+      }
+    }
+    const query = qs.toString();
+    return fetchAPI<SimulatorHistoryResponse>(
+      `/simulator/history${query ? `?${query}` : ""}`,
+    );
+  },
+
+  simulatorAlerts: (limit = 50) =>
+    fetchAPI<SimulatorAlert[]>(`/simulator/alerts?limit=${limit}`),
+
+  simulatorStats: () => fetchAPI<SimulatorStats>("/simulator/stats"),
+
+  simulatorPresets: () =>
+    fetchAPI<{ presets: SimulatorPresetInfo[]; tps_options: number[] }>(
+      "/simulator/presets",
+    ),
 };

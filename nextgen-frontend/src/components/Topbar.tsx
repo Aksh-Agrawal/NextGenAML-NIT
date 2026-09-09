@@ -14,6 +14,7 @@ const BREADCRUMBS: Record<string, string> = {
   "/patterns": "Pattern Detector",
   "/sar-report": "SAR Report Generator",
   "/monitor": "Real-Time Monitor",
+  "/simulator": "UPI Transaction Simulator",
 };
 
 export function Topbar() {

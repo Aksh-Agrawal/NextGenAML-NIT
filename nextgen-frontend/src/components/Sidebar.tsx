@@ -11,6 +11,7 @@ import {
   Search,
   FileText,
   Activity,
+  Smartphone,
   ChevronLeft,
   ChevronRight,
   // Cpu,
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { href: "/patterns", label: "Patterns", icon: Search },
   { href: "/sar-report", label: "SAR Report", icon: FileText },
   { href: "/monitor", label: "Monitor", icon: Activity },
+  { href: "/simulator", label: "UPI Simulator", icon: Smartphone },
 ];
 
 export function SidebarNav() {

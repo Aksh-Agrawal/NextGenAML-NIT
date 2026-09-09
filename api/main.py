@@ -18,11 +18,13 @@ from api.config import settings
 from graph_db.manager import GraphManager
 from ml.inference import InferenceEngine
 from ml.risk_engine import RiskEngine
+from simulator.service import SimulatorService
 
 # ── Global singletons (populated on startup) ──────────
 graph_manager = GraphManager()
 inference_engine = InferenceEngine(graph_manager, model_type=settings.GNN_MODEL_TYPE)
 risk_engine = RiskEngine(graph_manager, inference_engine)
+simulator_service = SimulatorService(graph_manager, inference_engine, risk_engine)
 
 # ── Logging ───────────────────────────────────────────
 logger.remove()
@@ -62,12 +64,17 @@ async def lifespan(app: FastAPI):
     risk_engine.compute_patterns()
     risk_engine.refresh_scores()
 
+    # 5. Optionally replay the simulator ledger into the graph (off by default)
+    if settings.SIMULATOR_REPLAY_LEDGER:
+        simulator_service.replay_ledger()
+
     logger.info("NextGenAML API ready!")
     logger.info("=" * 60)
 
     yield  # app is running
 
     logger.info("NextGenAML API shutting down")
+    simulator_service.shutdown()
 
 
 # ── App ───────────────────────────────────────────────
@@ -100,6 +107,7 @@ from api.routers import (
     reports,
     timeline,
     upload,
+    simulator,
 )
 
 app.include_router(health.router)
@@ -114,6 +122,8 @@ app.include_router(model_info.router)
 app.include_router(reports.router)
 app.include_router(timeline.router)
 app.include_router(upload.router)
+app.include_router(simulator.router)
+app.include_router(simulator.ws_router)
 
 # ── Frontend static files ─────────────────────────────
 _frontend_dir = Path(__file__).resolve().parent.parent / "nextgen-frontend" / "out"

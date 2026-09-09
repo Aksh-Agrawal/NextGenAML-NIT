@@ -40,11 +40,51 @@ class RiskEngine:
         self.gm = graph_manager
         self.inference = inference
         self._pattern_accounts: set[str] = set()
+        self._account_pattern_type: dict[str, str] = {}
         self._patterns_computed = False
         self._all_scores_cache: list[dict] | None = None
         self.fusion_gate = None
         self._fusion_meta: dict = {}
         self._load_fusion_gate()
+
+    # ── Incremental scoring (live simulator path) ───────
+    def invalidate(self) -> None:
+        """Drop cached scores + pattern state; next full scoring recomputes."""
+        self._all_scores_cache = None
+        self._patterns_computed = False
+
+    def rescore(self, accounts: list[str]) -> dict[str, dict]:
+        """Recompute risk for *only* the given accounts (no full rebuild).
+
+        Pattern membership is refreshed incrementally for each account using
+        cheap targeted checks instead of re-scanning the whole graph.
+        Returns {account_id: score_dict}.
+        """
+        accounts = list(dict.fromkeys(accounts))
+        for acc in accounts:
+            self._refresh_pattern_membership(acc)
+        self._patterns_computed = True
+        self._all_scores_cache = None
+        return {acc: self.score_account(acc) for acc in accounts}
+
+    def _refresh_pattern_membership(self, account_id: str) -> None:
+        """Update pattern flags for a single account without a full scan."""
+        self._pattern_accounts.discard(account_id)
+        self._account_pattern_type.pop(account_id, None)
+        try:
+            if self.gm._in_small_cycle(account_id):
+                self._pattern_accounts.add(account_id)
+                self._account_pattern_type[account_id] = "Circular Flow"
+                return
+            if self.gm._sender_structuring(account_id):
+                self._pattern_accounts.add(account_id)
+                self._account_pattern_type[account_id] = "Structuring"
+                return
+            if self.gm._is_dormant_activation(account_id):
+                self._pattern_accounts.add(account_id)
+                self._account_pattern_type[account_id] = "Dormant Activation"
+        except Exception as e:
+            logger.warning(f"Pattern refresh failed for {account_id}: {e}")
 
     def _load_fusion_gate(self):
         """Load the learned fusion gate if adaptive fusion is enabled."""

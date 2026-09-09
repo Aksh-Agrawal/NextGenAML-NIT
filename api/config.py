@@ -42,6 +42,14 @@ class Settings:
     # --- Google Gemini ---
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
 
+    # --- Transaction Simulator ---
+    SIMULATOR_REPLAY_LEDGER: bool = os.getenv("SIMULATOR_REPLAY_LEDGER", "false").strip().lower() in (
+        "1", "true", "yes", "on",
+    )
+    SIMULATOR_LEDGER_PATH: Path = BASE_DIR / "data" / "simulator_ledger.jsonl"
+    SIMULATOR_ALERTS_PATH: Path = BASE_DIR / "data" / "simulator_alerts.jsonl"
+    SIMULATOR_MAX_TPS: int = int(os.getenv("SIMULATOR_MAX_TPS", "100"))
+
     # --- CORS ---
     FRONTEND_ORIGINS: list[str] = [
         origin.strip()

@@ -1,0 +1,11 @@
+Algorithm: Pattern-Attentive Line-Graph Fusion
+Input: transaction graph G, account features X
+1. Build line graph L from G (transactions → nodes, time-linked edges)
+2. For each edge (i,j) in L:
+     attn(i,j) = softmax(MLP([Δt_ij, amount_ratio_ij, pattern_match_ij]))
+3. chain_emb = Σ_j attn(i,j) · h_j   (attention-weighted aggregation)
+4. edge_final = concat(h_src, h_tgt, chain_emb)
+5. ml_score = LogSoftmax(Linear(edge_final))
+6. [w_ml, w_pattern, w_anomaly] = Gate([ml_score, pattern_score, anomaly_score, out_degree, tx_count])
+7. risk_score = w_ml·ml_score + w_pattern·pattern_score + w_anomaly·anomaly_score
+Output: risk_score ∈ [0,100]
