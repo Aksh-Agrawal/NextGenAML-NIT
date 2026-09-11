@@ -11963,3 +11963,5 @@
 {"id": "ALERT-D054FEBA", "transaction_id": "UPI-99438709B2", "sender": "VIKAS", "receiver": "SONIA", "amount": 150000.0, "severity": "high", "reason": "High risk transaction", "created_at": "2026-08-05T04:25:24.307287+00:00"}
 {"id": "ALERT-CEC14496", "transaction_id": "UPI-64288AB613", "sender": "SONIA", "receiver": "AKASH", "amount": 8000.0, "severity": "high", "reason": "High risk transaction", "created_at": "2026-08-05T04:25:24.592349+00:00"}
 {"id": "ALERT-7A86EF48", "transaction_id": "UPI-3DE7772157", "sender": "AMAN", "receiver": "RAHUL", "amount": 2500.0, "severity": "high", "reason": "High risk transaction", "created_at": "2026-08-05T04:25:24.929447+00:00"}
+{"id": "ALERT-FD7FF9E0", "transaction_id": "UPI-0A470F6DEE", "sender": "SONIA", "receiver": "RAHUL", "amount": 1000000000.0, "severity": "high", "reason": "High risk transaction", "created_at": "2026-09-11T10:10:32.053880+00:00"}
+{"id": "ALERT-F52F260A", "transaction_id": "UPI-7D39DE14EF", "sender": "VIKAS", "receiver": "RAHUL", "amount": 5000.0, "severity": "high", "reason": "High risk transaction", "created_at": "2026-09-11T10:13:46.565803+00:00"}

@@ -156,7 +156,7 @@ class RiskEngine:
         # ── Fusion step (static or adaptive) ───────────
         if self.fusion_gate is not None:
             w = self._fusion_weights(ml_score, pattern_score, anomaly_score, feat)
-            final_score = (
+            fusion_score = (
                 w[0] * ml_score
                 + w[1] * pattern_score
                 + w[2] * anomaly_score
@@ -167,7 +167,7 @@ class RiskEngine:
                 "anomaly": round(float(w[2]), 4),
             }
         else:
-            final_score = (
+            fusion_score = (
                 self.W_ML * ml_score
                 + self.W_PATTERN * pattern_score
                 + self.W_ANOMALY * anomaly_score
@@ -177,7 +177,23 @@ class RiskEngine:
                 "pattern": self.W_PATTERN,
                 "anomaly": self.W_ANOMALY,
             }
-        final_score = min(1.0, max(0.0, final_score))
+
+        # The overall fraud probability should logically reflect the risk factors smoothly.
+        # Since the ML score is often low, static weights max out below 50% even with 
+        # strong patterns. We use an additive evidence model that builds upon the ML base.
+        static_score = (
+            self.W_ML * ml_score
+            + self.W_PATTERN * pattern_score
+            + self.W_ANOMALY * anomaly_score
+        )
+        
+        # Additive penalty model: ML score is the base.
+        # Pattern detection (e.g. structuring, circular) adds up to 50%.
+        # Statistical anomaly (velocity, volume) adds up to 40%.
+        additive_score = ml_score + (pattern_score * 0.50) + (anomaly_score * 0.40)
+        
+        final_score = max(fusion_score, static_score, additive_score)
+        final_score = min(0.99, max(0.0, final_score))
 
         # Determine pattern type
         pattern = self._get_pattern_type(account_id)

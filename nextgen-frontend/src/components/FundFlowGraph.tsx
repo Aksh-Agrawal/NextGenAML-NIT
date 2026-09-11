@@ -41,22 +41,33 @@ interface FundFlowGraphProps {
   accountId?: string;
 }
 
-type Layout = "force" | "circular" | "hierarchical";
+type Layout = "force" | "circular" | "hierarchical" | "network";
 
 function isHighFraudProbability(score?: number) {
   const normalized = (score ?? 0) <= 1 ? (score ?? 0) * 100 : (score ?? 0);
   return normalized >= 50;
 }
 
-function getNodeRadius(node: { id: string; risk?: number }, centerId?: string) {
-  const isCenter = !!centerId && node.id === centerId;
-  const risk = node.risk ?? 0;
-  const normalizedRisk = risk <= 1 ? risk * 100 : risk;
+// ── GCN-style network graph helpers ──────────────────────────
+function getNetworkNodeColor(risk: number, isCenter: boolean): string {
+  if (isCenter) return "#a78bfa"; // purple for center account
+  const r = risk <= 1 ? risk * 100 : risk;
+  if (r >= 70) return "#ef4444"; // red — illicit / high-risk
+  if (r >= 40) return "#64748b"; // grey — ambiguous / medium
+  return "#3b82f6";              // blue — licit / low-risk
+}
 
-  if (isCenter) return { dot: 20, ring: 26 };
-  if (normalizedRisk >= 75) return { dot: 20, ring: 26 };
-  if (normalizedRisk >= 50) return { dot: 15, ring: 20 };
-  return { dot: 10, ring: 14 };
+function getNetworkNodeRadius(risk: number, isCenter: boolean): number {
+  if (isCenter) return 14;
+  const r = risk <= 1 ? risk * 100 : risk;
+  // Scale from 3 (lowest risk) to 12 (highest risk)
+  return 3 + (r / 100) * 9;
+}
+
+function getNetworkEdgeOpacity(isSuspicious: boolean, normValue: number): number {
+  if (isSuspicious) return 0.25;
+  if (normValue > 0.7) return 0.18;
+  return 0.08 + normValue * 0.07;
 }
 
 interface ReplayState {
@@ -318,19 +329,6 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       .attr("d", "M0,-5L10,0L0,5")
       .attr("fill", "var(--accent-red)");
 
-    defs
-      .append("marker")
-      .attr("id", "arrow-red-large")
-      .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 26)
-      .attr("refY", 0)
-      .attr("markerWidth", 7)
-      .attr("markerHeight", 7)
-      .attr("orient", "auto")
-      .append("path")
-      .attr("d", "M0,-5L10,0L0,5")
-      .attr("fill", "var(--accent-red)");
-
     // Glow filter
     const filter = defs
       .append("filter")
@@ -423,41 +421,47 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
 
     const simNodes = nodes.map((n) => ({
       ...n,
-      x: startPos.get(n.id)?.x ?? W / 2 + (Math.random() - 0.5) * 100,
-      y: startPos.get(n.id)?.y ?? H / 2 + (Math.random() - 0.5) * 100,
-      fx: layout !== "force" ? (startPos.get(n.id)?.x ?? undefined) : undefined,
-      fy: layout !== "force" ? (startPos.get(n.id)?.y ?? undefined) : undefined,
+      x: startPos.get(n.id)?.x ?? W / 2 + (Math.random() - 0.5) * (layout === "network" ? 400 : 100),
+      y: startPos.get(n.id)?.y ?? H / 2 + (Math.random() - 0.5) * (layout === "network" ? 400 : 100),
+      fx: (layout !== "force" && layout !== "network") ? (startPos.get(n.id)?.x ?? undefined) : undefined,
+      fy: (layout !== "force" && layout !== "network") ? (startPos.get(n.id)?.y ?? undefined) : undefined,
     }));
 
     const simLinks = links.map((l) => ({ ...l }));
 
+    const isNetwork = layout === "network";
     const sim = d3
       .forceSimulation(simNodes)
-      .alphaDecay(0.05)
-      .velocityDecay(0.5)
+      .alphaDecay(isNetwork ? 0.02 : 0.05)
+      .velocityDecay(isNetwork ? 0.4 : 0.5)
       .alphaMin(0.001)
       .force(
         "link",
         d3
           .forceLink(simLinks)
           .id((d: any) => d.id)
-          .distance(100)
-          .strength(0.5),
+          .distance(isNetwork ? 50 : 100)
+          .strength(isNetwork ? 0.3 : 0.5),
       )
       .force(
         "charge",
-        d3.forceManyBody().strength(layout === "force" ? -300 : -50),
+        d3.forceManyBody().strength(
+          isNetwork ? -120 : (layout === "force" ? -300 : -50),
+        ),
       )
-      .force("center", layout === "force" ? d3.forceCenter(W / 2, H / 2) : null)
-      .force("collision", d3.forceCollide((d: any) => getNodeRadius(d, accountId).ring + 12));
+      .force("center", (layout === "force" || isNetwork) ? d3.forceCenter(W / 2, H / 2) : null)
+      .force("collision", d3.forceCollide(isNetwork ? 8 : 30))
+      .force("x", isNetwork ? d3.forceX(W / 2).strength(0.03) : null)
+      .force("y", isNetwork ? d3.forceY(H / 2).strength(0.03) : null);
 
     simulationRef.current = sim;
 
     const settleTimer = setTimeout(() => {
       sim.stop();
-    }, 2500);
+    }, isNetwork ? 5000 : 2500);
 
     // Edges
+    const maxVal = Math.max(...links.map((l) => l.value || 1), 1);
     const edgeEl = container
       .append("g")
       .selectAll("line")
@@ -465,29 +469,37 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       .enter()
       .append("line")
       .attr("stroke", (d: any) => {
-        const maxVal = Math.max(...links.map((l) => l.value || 1));
+        if (isNetwork) {
+          return "#ffffff";
+        }
         const norm = (d.value || 0) / maxVal;
         if (d.is_suspicious || norm > 0.7) return "var(--accent-red)";
         if (norm > 0.4) return "rgba(0,229,255,0.55)";
         return "rgba(183,194,214,0.36)";
       })
       .attr("stroke-width", (d: any) => {
-        const maxVal = Math.max(...links.map((l) => l.value || 1));
+        if (isNetwork) return d.is_suspicious ? 0.6 : 0.3;
         const norm = (d.value || 0) / maxVal;
-        if (d.is_suspicious) return 4.5;
-        if (norm > 0.7) return 3.5;
-        if (norm > 0.4) return 2.0;
-        return 1.2;
+        if (d.is_suspicious || norm > 0.7) return 2.5;
+        if (norm > 0.4) return 1.5;
+        return 1;
       })
-      .attr("stroke-opacity", (d: any) => (d.is_suspicious ? 0.95 : 0.45))
-      .attr("marker-end", (d: any) =>
-        d.is_suspicious ? "url(#arrow-red-large)" : "url(#arrow-normal)",
-      )
-      .attr("stroke-dasharray", (d: any) => (d.is_suspicious ? "8,4" : null))
+      .attr("stroke-opacity", (d: any) => {
+        if (isNetwork) {
+          const norm = (d.value || 0) / maxVal;
+          return getNetworkEdgeOpacity(d.is_suspicious, norm);
+        }
+        return d.is_suspicious ? 0.92 : 0.45;
+      })
+      .attr("marker-end", (d: any) => {
+        if (isNetwork) return null; // no arrows in network mode — too cluttered
+        return d.is_suspicious ? "url(#arrow-red)" : "url(#arrow-normal)";
+      })
+      .attr("stroke-dasharray", (d: any) => {
+        if (isNetwork) return null;
+        return d.is_suspicious ? "7,5" : null;
+      })
       .attr("stroke-linecap", "round")
-      .style("filter", (d: any) =>
-        d.is_suspicious ? "drop-shadow(0 0 6px rgba(255,61,113,0.7))" : null,
-      )
       .on("mouseover", function (e, d: any) {
         setTooltip({
           x: e.pageX,
@@ -502,9 +514,11 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       })
       .on("mouseout", () => setTooltip(null));
 
-    edgeEl
-      .filter((d: any) => d.is_suspicious)
-      .style("animation", "flow-dash 0.7s linear infinite");
+    if (!isNetwork) {
+      edgeEl
+        .filter((d: any) => d.is_suspicious)
+        .style("animation", "flow-dash 0.9s linear infinite");
+    }
 
     // Node groups
     const nodeGroup = container
@@ -533,64 +547,151 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
             }
           }),
       )
+      .on("mouseover", function (e, d: any) {
+        // Enlarge the hovered node slightly
+        d3.select(this)
+          .select(".node-circle")
+          .transition()
+          .duration(150)
+          .attr("r", (n: any) => {
+            if (isNetwork) return getNetworkNodeRadius(n.risk ?? 0, n.id === accountId) * 1.3;
+            return n.id === accountId ? 20 : 13;
+          });
 
-    // Node outer ring (glow for selected/flagged)
-    nodeGroup
-      .append("circle")
-      .attr("r", (d) => getNodeRadius(d, accountId).ring)
-      .attr("fill", "none")
-      .attr("stroke", (d) => {
-        if (d.id === accountId) return "var(--accent-blue)";
-        return isHighFraudProbability(d.risk) ? "var(--accent-red)" : "transparent";
+        // Highlight connected edges and nodes, dim the rest
+        const connected = new Set([d.id]);
+        edgeEl.attr("stroke-opacity", (l: any) => {
+          if (l.source.id === d.id || l.target.id === d.id) {
+            connected.add(l.source.id);
+            connected.add(l.target.id);
+            return isNetwork ? 0.8 : 1.0;
+          }
+          return 0.05;
+        });
+
+        nodeGroup.attr("opacity", (n: any) => (connected.has(n.id) ? 1.0 : 0.15));
+
+        setTooltip({
+          x: e.pageX,
+          y: e.pageY,
+          text: `Account: ${d.id}`,
+        });
       })
-      .attr("stroke-width", (d) => (isHighFraudProbability(d.risk) || d.id === accountId ? 2.5 : 1.5))
-      .attr("stroke-opacity", 0.7)
-      .attr("class", (d) => {
-        if (d.id === accountId) return "animate-ring-pulse-purple";
-        if (isHighFraudProbability(d.risk)) return "animate-ring-pulse-red";
-        return "";
+      .on("mousemove", function (e) {
+        setTooltip((prev) =>
+          prev ? { ...prev, x: e.pageX, y: e.pageY } : null,
+        );
+      })
+      .on("mouseout", function (e, d: any) {
+        // Restore node size
+        d3.select(this)
+          .select(".node-circle")
+          .transition()
+          .duration(150)
+          .attr("r", (n: any) => {
+            if (isNetwork) return getNetworkNodeRadius(n.risk ?? 0, n.id === accountId);
+            return n.id === accountId ? 16 : 10;
+          });
+
+        // Restore edges and nodes
+        edgeEl.attr("stroke-opacity", (l: any) => {
+          if (isNetwork) {
+            const norm = (l.value || 0) / maxVal;
+            return getNetworkEdgeOpacity(l.is_suspicious, norm);
+          }
+          return l.is_suspicious ? 0.92 : 0.45;
+        });
+
+        nodeGroup.attr("opacity", 1.0);
+        setTooltip(null);
       });
+
+    // Node outer ring (glow for selected/flagged) — hidden in network mode
+    if (!isNetwork) {
+      nodeGroup
+        .append("circle")
+        .attr("r", (d) => (d.id === accountId ? 20 : 14))
+        .attr("fill", "none")
+        .attr("stroke", (d) => {
+          if (d.id === accountId) return "var(--accent-blue)";
+          return isHighFraudProbability(d.risk) ? "var(--accent-red)" : "transparent";
+        })
+        .attr("stroke-width", 2)
+        .attr("stroke-opacity", 0.6)
+        .attr("class", (d) =>
+          d.id === accountId ? "animate-ring-pulse-purple" : "",
+        );
+    }
 
     // Node circles
     nodeGroup
       .append("circle")
       .attr("r", 0)
-      .attr("class", "node-circle")
+      .attr("class", (d) => {
+        if (isNetwork) {
+          const r = (d.risk ?? 0) <= 1 ? (d.risk ?? 0) * 100 : (d.risk ?? 0);
+          return r >= 70 ? "node-circle network-node-high-risk" : "node-circle";
+        }
+        return "node-circle";
+      })
       .attr("fill", (d) => {
+        if (isNetwork) return getNetworkNodeColor(d.risk ?? 0, d.id === accountId);
         if (d.id === accountId) return "var(--accent-blue)";
         return isHighFraudProbability(d.risk)
           ? "var(--accent-red)"
           : "rgba(0,229,255,0.85)";
       })
-      .attr("fill-opacity", (d) => (d.id === accountId ? 1 : 0.85))
-      .attr("stroke", (d) => {
-        if (d.id === accountId) return "rgba(0,229,255,0.6)";
-        return "rgba(255,255,255,0.15)";
+      .attr("fill-opacity", (d) => {
+        if (isNetwork) return d.id === accountId ? 1 : 0.85;
+        return d.id === accountId ? 1 : 0.75;
       })
-      .attr("stroke-width", 1.5)
+      .attr("stroke", (d) => {
+        if (isNetwork) {
+          if (d.id === accountId) return "rgba(167,139,250,0.6)";
+          return "none";
+        }
+        if (d.id === accountId) return "rgba(0,229,255,0.6)";
+        return "rgba(255,255,255,0.1)";
+      })
+      .attr("stroke-width", isNetwork ? 1 : 1.5)
       .attr("filter", (d) => {
+        if (isNetwork) return "";
         return isHighFraudProbability(d.risk) || d.id === accountId
           ? "url(#node-glow)"
           : "";
       })
       .transition()
-      .duration(600)
-      .delay((_, i) => i * 30)
-      .attr("r", (d) => getNodeRadius(d, accountId).dot);
+      .duration(isNetwork ? 400 : 600)
+      .delay((_, i) => isNetwork ? i * 5 : i * 30)
+      .attr("r", (d) => {
+        if (isNetwork) return getNetworkNodeRadius(d.risk ?? 0, d.id === accountId);
+        return d.id === accountId ? 16 : 10;
+      });
 
-    // Labels
-    nodeGroup
-      .append("text")
-      .text((d) => (d.id.length > 8 ? d.id.slice(-8) : d.id))
-      .attr("dy", (d) => getNodeRadius(d, accountId).ring + 14)
-      .attr("text-anchor", "middle")
-      .style("fill", (d) => {
-        if (d.id === accountId) return "var(--accent-blue)";
-        if (isHighFraudProbability(d.risk)) return "var(--accent-red)";
-        return "var(--text-secondary)";
-      })
-      .style("font-size", (d) => (d.id === accountId || isHighFraudProbability(d.risk) ? "11px" : "9px"))
-      .style("font-weight", (d) => (d.id === accountId || isHighFraudProbability(d.risk) ? "700" : "400"));
+    // Labels — hidden in network mode for clean look (matching the paper)
+    if (!isNetwork) {
+      nodeGroup
+        .append("text")
+        .text((d) => (d.id.length > 8 ? d.id.slice(-8) : d.id))
+        .attr("dy", (d) => (d.id === accountId ? 30 : 22))
+        .attr("text-anchor", "middle")
+        .style("fill", (d) =>
+          d.id === accountId ? "var(--accent-blue)" : "var(--text-secondary)",
+        )
+        .style("font-size", (d) => (d.id === accountId ? "11px" : "9px"))
+        .style("font-weight", (d) => (d.id === accountId ? "600" : "400"));
+    } else {
+      // In network mode, show label only for center account
+      nodeGroup
+        .filter((d: any) => d.id === accountId)
+        .append("text")
+        .text((d: any) => (d.id.length > 8 ? d.id.slice(-8) : d.id))
+        .attr("dy", 20)
+        .attr("text-anchor", "middle")
+        .style("fill", "#a78bfa")
+        .style("font-size", "9px")
+        .style("font-weight", "600");
+    }
 
     sim.on("tick", () => {
       edgeEl
@@ -621,9 +722,9 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
     const edgeEnter = edgeSel.enter().append("line");
     edgeEnter
       .attr("marker-end", (d: any) =>
-        d.is_suspicious ? "url(#arrow-red-large)" : "url(#arrow-normal)",
+        d.is_suspicious ? "url(#arrow-red)" : "url(#arrow-normal)",
       )
-      .attr("stroke-dasharray", (d: any) => (d.is_suspicious ? "8,4" : null))
+      .attr("stroke-dasharray", (d: any) => (d.is_suspicious ? "7,5" : null))
       .attr("stroke-linecap", "round");
     edgeEnter.each(function (d: any) {
       r.edgeElMap.set(d.key, this as SVGLineElement);
@@ -639,15 +740,11 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       })
       .attr("stroke-width", (d: any) => {
         const norm = (d.value || 0) / maxVal;
-        if (d.is_suspicious) return 4.5;
-        if (norm > 0.7) return 3.5;
-        if (norm > 0.4) return 2.0;
-        return 1.2;
+        if (d.is_suspicious || norm > 0.7) return 2.5;
+        if (norm > 0.4) return 1.5;
+        return 1;
       })
-      .attr("stroke-opacity", (d: any) => (d.is_suspicious ? 0.95 : 0.45))
-      .style("filter", (d: any) =>
-        d.is_suspicious ? "drop-shadow(0 0 6px rgba(255,61,113,0.7))" : null,
-      );
+      .attr("stroke-opacity", (d: any) => (d.is_suspicious ? 0.92 : 0.45));
     // Position edges immediately so new links render before the next tick
     edgeSel
       .attr("x1", (d: any) => (typeof d.source === "object" ? d.source.x : 0))
@@ -671,7 +768,7 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
     nodeEnter
       .append("circle")
       .attr("class", "ring")
-      .attr("r", (d: any) => getNodeRadius(d, r.centerAccount).ring)
+      .attr("r", (d: any) => (d.id === r.centerAccount ? 20 : 14))
       .attr("fill", "none")
       .attr("stroke", (d: any) =>
         d.id === r.centerAccount
@@ -680,20 +777,16 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
             ? "var(--accent-red)"
             : "transparent",
       )
-      .attr("stroke-width", (d: any) => (isHighFraudProbability(d.risk) || d.id === r.centerAccount ? 2.5 : 1.5))
-      .attr("stroke-opacity", 0.7)
+      .attr("stroke-width", 2)
+      .attr("stroke-opacity", 0.6)
       .attr("class", (d: any) =>
-        d.id === r.centerAccount
-          ? "ring animate-ring-pulse-purple"
-          : isHighFraudProbability(d.risk)
-            ? "ring animate-ring-pulse-red"
-            : "ring",
+        d.id === r.centerAccount ? "ring animate-ring-pulse-purple" : "ring",
       );
 
     nodeEnter
       .append("circle")
       .attr("class", "dot")
-      .attr("r", (d: any) => getNodeRadius(d, r.centerAccount).dot)
+      .attr("r", (d: any) => (d.id === r.centerAccount ? 16 : 10))
       .attr("fill", (d: any) =>
         d.id === r.centerAccount
           ? "var(--accent-blue)"
@@ -701,8 +794,8 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
             ? "var(--accent-red)"
             : "rgba(0,229,255,0.85)",
       )
-      .attr("fill-opacity", (d: any) => (d.id === r.centerAccount ? 1 : 0.85))
-      .attr("stroke", "rgba(255,255,255,0.15)")
+      .attr("fill-opacity", (d: any) => (d.id === r.centerAccount ? 1 : 0.75))
+      .attr("stroke", "rgba(255,255,255,0.1)")
       .attr("stroke-width", 1.5)
       .attr("filter", (d: any) =>
         isHighFraudProbability(d.risk) || d.id === r.centerAccount
@@ -713,21 +806,13 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
     nodeEnter
       .append("text")
       .text((d: any) => (d.id.length > 8 ? d.id.slice(-8) : d.id))
-      .attr("dy", (d: any) => getNodeRadius(d, r.centerAccount).ring + 14)
+      .attr("dy", (d: any) => (d.id === r.centerAccount ? 30 : 22))
       .attr("text-anchor", "middle")
       .style("fill", (d: any) =>
-        d.id === r.centerAccount
-          ? "var(--accent-blue)"
-          : isHighFraudProbability(d.risk)
-            ? "var(--accent-red)"
-            : "var(--text-secondary)",
+        d.id === r.centerAccount ? "var(--accent-blue)" : "var(--text-secondary)",
       )
-      .style("font-size", (d: any) =>
-        d.id === r.centerAccount || isHighFraudProbability(d.risk) ? "11px" : "9px",
-      )
-      .style("font-weight", (d: any) =>
-        d.id === r.centerAccount || isHighFraudProbability(d.risk) ? "700" : "400",
-      );
+      .style("font-size", (d: any) => (d.id === r.centerAccount ? "11px" : "9px"))
+      .style("font-weight", (d: any) => (d.id === r.centerAccount ? "600" : "400"));
 
     nodeEnter.call(
       d3
@@ -869,19 +954,6 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       .attr("d", "M0,-5L10,0L0,5")
       .attr("fill", "var(--accent-red)");
 
-    defs
-      .append("marker")
-      .attr("id", "arrow-red-large")
-      .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 26)
-      .attr("refY", 0)
-      .attr("markerWidth", 7)
-      .attr("markerHeight", 7)
-      .attr("orient", "auto")
-      .append("path")
-      .attr("d", "M0,-5L10,0L0,5")
-      .attr("fill", "var(--accent-red)");
-
     const filter = defs
       .append("filter")
       .attr("id", "node-glow")
@@ -928,7 +1000,7 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
       )
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(W / 2, H / 2))
-      .force("collision", d3.forceCollide((d: any) => getNodeRadius(d, accountId).ring + 12));
+      .force("collision", d3.forceCollide(30));
     simulationRef.current = sim;
 
     const r: ReplayState = {
@@ -1080,7 +1152,7 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
         }}
       >
         {!replayMode &&
-          (["force", "circular", "hierarchical"] as Layout[]).map((l) => (
+          (["force", "circular", "hierarchical", "network"] as Layout[]).map((l) => (
             <button
               key={l}
               onClick={() => setLayout(l)}
@@ -1089,16 +1161,22 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
                 padding: "4px 10px",
                 fontSize: 11,
                 textTransform: "capitalize",
-                background: layout === l ? "rgba(0,229,255,0.2)" : undefined,
-                borderColor: layout === l ? "rgba(0,229,255,0.36)" : undefined,
-                color: layout === l ? "var(--accent-blue)" : undefined,
+                background: layout === l
+                  ? (l === "network" ? "rgba(239,68,68,0.15)" : "rgba(0,229,255,0.2)")
+                  : undefined,
+                borderColor: layout === l
+                  ? (l === "network" ? "rgba(239,68,68,0.36)" : "rgba(0,229,255,0.36)")
+                  : undefined,
+                color: layout === l
+                  ? (l === "network" ? "#ef4444" : "var(--accent-blue)")
+                  : undefined,
               }}
             >
-              {l}
+              {l === "network" ? "🔬 network" : l}
             </button>
           ))}
         <div style={{ width: 1, height: 20, background: "var(--border)" }} />
-        {!replayMode && (
+        {!replayMode && layout !== "network" && (
           <button
             onClick={() => setShowSuspiciousOnly(!showSuspiciousOnly)}
             className="btn-ghost"
@@ -1118,7 +1196,7 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
             Suspicious only
           </button>
         )}
-        {!replayMode && (
+        {!replayMode && layout !== "network" && (
           <>
             <div style={{ width: 1, height: 20, background: "var(--border)" }} />
             <span
@@ -1259,6 +1337,87 @@ export function FundFlowGraph({ accountId }: FundFlowGraphProps) {
             display: "block",
           }}
         />
+      )}
+
+      {/* Network mode: vignette overlay for depth */}
+      {layout === "network" && !isLoading && !error && (
+        <div
+          className="network-vignette"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 1,
+          }}
+        />
+      )}
+
+      {/* Network mode: legend */}
+      {layout === "network" && !isLoading && !error && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 16,
+            left: 16,
+            zIndex: 10,
+            padding: "10px 14px",
+            background: "rgba(11,15,25,0.9)",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            backdropFilter: "blur(10px)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 9,
+              color: "var(--text-muted)",
+              textTransform: "uppercase",
+              letterSpacing: "0.8px",
+              marginBottom: 2,
+            }}
+          >
+            GCN Risk Classification
+          </div>
+          {[
+            { color: "#ef4444", label: "High Risk / Illicit (≥70%)" },
+            { color: "#64748b", label: "Medium Risk (40–69%)" },
+            { color: "#3b82f6", label: "Low Risk / Licit (<40%)" },
+            { color: "#a78bfa", label: "Center Account" },
+          ].map((item) => (
+            <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  background: item.color,
+                  flexShrink: 0,
+                  boxShadow: item.color === "#ef4444" ? `0 0 6px ${item.color}80` : "none",
+                }}
+              />
+              <span style={{ fontSize: 10, color: "var(--text-secondary)" }}>
+                {item.label}
+              </span>
+            </div>
+          ))}
+          <div
+            style={{
+              fontSize: 9,
+              color: "var(--text-muted)",
+              marginTop: 4,
+              borderTop: "1px solid var(--border)",
+              paddingTop: 4,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+          >
+            {subgraph ? `${subgraph.nodes.length} nodes · ${subgraph.links.length} edges` : ""}
+          </div>
+          <div style={{ fontSize: 8, color: "var(--text-muted)", opacity: 0.6 }}>
+            Weber et al., 2019 (arXiv:1908.02591)
+          </div>
+        </div>
       )}
 
       {/* Flow loading overlay (replay mode) */}

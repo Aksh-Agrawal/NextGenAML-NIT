@@ -238,7 +238,7 @@ export default function SimulatorPage() {
                 <button
                   key={a.account_id}
                   onClick={() => setSelectedId(a.account_id)}
-                  title={`${a.name} · ${a.balance.toLocaleString("en-IN")}`}
+                  title={`${a.name} (ID: ${a.account_id}) · ₹${a.balance.toLocaleString("en-IN")}`}
                   style={{
                     width: 34,
                     height: 34,
@@ -288,7 +288,7 @@ export default function SimulatorPage() {
                 {recipients.length === 0 && <option value="">No recipients</option>}
                 {recipients.map((a) => (
                   <option key={a.account_id} value={a.account_id}>
-                    {a.name} ({a.account_id}) · ₹{a.balance.toLocaleString("en-IN")}
+                    {a.name} (ID: {a.account_id})
                   </option>
                 ))}
               </select>
@@ -350,7 +350,7 @@ export default function SimulatorPage() {
                 grows with every payment
               </span>
             </div>
-            <LiveGraph accounts={displayAccounts} delta={delta} height={360} />
+            <LiveGraph accounts={displayAccounts} txns={txns} delta={delta} height={360} />
           </motion.div>
 
           <motion.div

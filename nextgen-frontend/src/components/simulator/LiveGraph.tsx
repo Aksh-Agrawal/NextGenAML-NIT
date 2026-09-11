@@ -6,6 +6,7 @@ import type { SimulatorAccount, SimulatorGraphDelta } from "@/lib/api";
 
 interface LiveGraphProps {
   accounts: SimulatorAccount[];
+  txns?: import("@/lib/api").SimulatorHistoryItem[];
   delta: SimulatorGraphDelta | null;
   height?: number;
 }
@@ -51,7 +52,7 @@ function riskColor(risk: number) {
       : "rgba(0,229,255,0.85)";
 }
 
-export function LiveGraph({ accounts, delta, height = 320 }: LiveGraphProps) {
+export function LiveGraph({ accounts, txns, delta, height = 320 }: LiveGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const stateRef = useRef<GraphState | null>(null);
   const simRef = useRef<d3.Simulation<NodeDatum, LinkDatum> | null>(null);
@@ -129,6 +130,7 @@ export function LiveGraph({ accounts, delta, height = 320 }: LiveGraphProps) {
 
     const nodes: NodeDatum[] = [];
     const links: LinkDatum[] = [];
+
     const sim = d3
       .forceSimulation<NodeDatum>(nodes)
       .alphaDecay(0.03)
@@ -183,6 +185,63 @@ export function LiveGraph({ accounts, delta, height = 320 }: LiveGraphProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Merge historical txns dynamically when they arrive or change
+  useEffect(() => {
+    const s = stateRef.current;
+    if (!s || !txns) return;
+    
+    let changed = false;
+    const recentTxns = [...txns].reverse();
+    for (const t of recentTxns) {
+      for (const acc of [t.sender, t.receiver]) {
+        if (!s.nodeMap.has(acc)) {
+          const seed = accountMap.current.get(acc);
+          const risk = acc === t.sender ? t.sender_risk : t.receiver_risk;
+          const node: NodeDatum = {
+            id: acc,
+            label: seed?.name || acc,
+            risk: risk || 0,
+            color: seed?.avatar_color ?? riskColor(risk || 0),
+            x: s.W / 2 + (Math.random() - 0.5) * 160,
+            y: s.H / 2 + (Math.random() - 0.5) * 160,
+          };
+          s.nodeMap.set(acc, node);
+          s.nodes.push(node);
+          changed = true;
+        } else {
+          const existing = s.nodeMap.get(acc)!;
+          const risk = acc === t.sender ? t.sender_risk : t.receiver_risk;
+          if (risk !== undefined) {
+            existing.risk = Math.max(existing.risk, risk);
+            existing.color = riskColor(existing.risk);
+          }
+        }
+      }
+
+      const key = `${t.sender}->${t.receiver}`;
+      if (!s.linkMap.has(key)) {
+        const link: LinkDatum = {
+          key,
+          source: t.sender,
+          target: t.receiver,
+          value: t.amount,
+          tx_count: 1,
+          is_suspicious: t.risk_score >= 50,
+          risk: t.risk_score,
+        };
+        s.linkMap.set(key, link);
+        s.links.push(link);
+        changed = true;
+      }
+    }
+    
+    if (changed) {
+      renderGraph(s);
+      s.sim?.alpha(0.5).restart();
+      setCounts({ nodes: s.nodes.length, edges: s.links.length });
+    }
+  }, [txns]);
 
   const renderGraph = (s: GraphState) => {
     if (!simRef.current) return;
@@ -293,6 +352,22 @@ export function LiveGraph({ accounts, delta, height = 320 }: LiveGraphProps) {
     }
 
     for (const e of d.new_edges ?? []) {
+      for (const acc of [e.source, e.target]) {
+        if (!s.nodeMap.has(acc)) {
+          const seed = accountMap.current.get(acc);
+          const node: NodeDatum = {
+            id: acc,
+            label: seed?.name || acc,
+            risk: 0,
+            color: seed?.avatar_color ?? riskColor(0),
+            x: s.W / 2 + (Math.random() - 0.5) * 160,
+            y: s.H / 2 + (Math.random() - 0.5) * 160,
+          };
+          s.nodeMap.set(acc, node);
+          s.nodes.push(node);
+        }
+      }
+
       const key = `${e.source}->${e.target}`;
       const existing = s.linkMap.get(key);
       if (existing) {

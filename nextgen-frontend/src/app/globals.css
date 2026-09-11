@@ -220,19 +220,6 @@ h4 {
 .animate-ring-pulse-blue {
   animation: ring-pulse-blue 2s ease-in-out infinite;
 }
-.animate-ring-pulse-red {
-  animation: svg-ring-pulse-red 1.8s ease-in-out infinite;
-}
-@keyframes svg-ring-pulse-red {
-  0%, 100% {
-    stroke-opacity: 0.9;
-    stroke-width: 2.5px;
-  }
-  50% {
-    stroke-opacity: 0.25;
-    stroke-width: 6.5px;
-  }
-}
 .animate-dot-blink {
   animation: dot-blink 2s ease-in-out infinite;
 }
@@ -903,3 +890,18 @@ svg.graph-canvas .edge-path {
   }
 }
 /* touch */
+
+/* ─── Network Graph (GCN-style) ────────────────────── */
+@keyframes network-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.6)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.9)); }
+}
+
+.network-node-high-risk {
+  animation: network-glow-pulse 2.5s ease-in-out infinite;
+}
+
+.network-vignette {
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%);
+  pointer-events: none;
+}

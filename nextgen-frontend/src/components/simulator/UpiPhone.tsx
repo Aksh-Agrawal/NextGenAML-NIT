@@ -186,7 +186,7 @@ export function UpiPhone({
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {account?.name ?? "—"}
+                    {account?.name ?? "—"} (ID: {account?.account_id ?? "—"})
                   </div>
                   <div
                     style={{
