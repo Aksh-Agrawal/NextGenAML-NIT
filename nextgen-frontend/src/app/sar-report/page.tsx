@@ -87,7 +87,7 @@ ${report.report_text}
 
 function SARReportForm() {
   const searchParams = useSearchParams();
-  const prefilledId = searchParams.get("accountId") ?? "";
+  const prefilledId = searchParams?.get("accountId") ?? "";
 
   const [accountId, setAccountId] = useState(prefilledId);
   const [bankName, setBankName] = useState("X-Bank of India");

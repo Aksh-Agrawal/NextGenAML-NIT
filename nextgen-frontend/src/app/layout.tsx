@@ -1,32 +1,27 @@
 import type { Metadata } from "next";
-import {
-  Inter,
-  JetBrains_Mono,
-  Plus_Jakarta_Sans,
-  Roboto_Mono,
-} from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: "./fonts/GeistVF.woff",
   variable: "--font-inter",
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
+const jetbrainsMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
   variable: "--font-jetbrains",
   display: "swap",
 });
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+const plusJakartaSans = localFont({
+  src: "./fonts/GeistVF.woff",
   variable: "--font-heading",
   display: "swap",
 });
 
-const robotoMono = Roboto_Mono({
-  subsets: ["latin"],
+const robotoMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
   variable: "--font-mono",
   display: "swap",
 });
@@ -56,14 +51,6 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable} ${plusJakartaSans.variable} ${robotoMono.variable}`}
       style={{ scrollBehavior: "smooth" }}
     >
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-      </head>
       <body
         style={{
           background: "var(--bg-base)",

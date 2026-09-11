@@ -11,13 +11,13 @@ const EXAMPLE_ACCOUNTS = [
 
 function FundFlowContent() {
   const searchParams = useSearchParams()
-  const initial = searchParams.get('account') || ''
+  const initial = searchParams?.get('account') || ''
   const [accountId, setAccountId] = useState(initial)
   const [inputVal, setInputVal] = useState('')
 
   useEffect(() => {
-    const param = searchParams.get('account')
-    if (param !== null) setAccountId(param)
+    const param = searchParams?.get('account')
+    if (param != null) setAccountId(param)
   }, [searchParams])
 
   const handleSearch = () => {

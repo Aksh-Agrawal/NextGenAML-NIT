@@ -220,6 +220,19 @@ h4 {
 .animate-ring-pulse-blue {
   animation: ring-pulse-blue 2s ease-in-out infinite;
 }
+.animate-ring-pulse-red {
+  animation: svg-ring-pulse-red 1.8s ease-in-out infinite;
+}
+@keyframes svg-ring-pulse-red {
+  0%, 100% {
+    stroke-opacity: 0.9;
+    stroke-width: 2.5px;
+  }
+  50% {
+    stroke-opacity: 0.25;
+    stroke-width: 6.5px;
+  }
+}
 .animate-dot-blink {
   animation: dot-blink 2s ease-in-out infinite;
 }
