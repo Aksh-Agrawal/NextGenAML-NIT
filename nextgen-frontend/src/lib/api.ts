@@ -213,6 +213,13 @@ export interface SimulatorHistoryItem {
   channel: string;
   status: string;
   failure_reason?: string | null;
+  confirmation_id?: string | null;
+  voice_status?: string | null;
+  voice_outcome?: string | null;
+  voice_notes?: string | null;
+  voice_call_sid?: string | null;
+  voice_prompt?: string | null;
+  voice_transcript?: Array<{ speaker: string; text: string; timestamp: string }>;
   risk_score: number;
   risk_level: RiskLevel;
   flags: string[];
@@ -267,6 +274,40 @@ export interface LiveEnvelope {
   alert: SimulatorAlert | null;
   graph_delta: SimulatorGraphDelta;
   stats: SimulatorStats;
+}
+
+export interface VoiceConfirmation {
+  confirmation_id: string;
+  transaction_id: string;
+  transaction: {
+    sender: string;
+    receiver: string;
+    amount: number;
+    currency: string;
+    transaction_id: string;
+    timestamp: string;
+  };
+  tx_risk: SimulatorTxnRisk;
+  customer_name: string;
+  customer_phone: string;
+  status: string;
+  attempts: number;
+  call_sid?: string | null;
+  prompt: string;
+  transcript: Array<{ speaker: string; text: string; timestamp: string }>;
+  notes: string;
+  outcome?: string | null;
+  created_at: string;
+  updated_at: string;
+  next_retry_at?: string | null;
+}
+
+export interface VoiceStats {
+  total: number;
+  pending: number;
+  confirmed: number;
+  denied: number;
+  no_answer: number;
 }
 
 export interface SimulatorPresetInfo {
@@ -477,4 +518,23 @@ export const api = {
     fetchAPI<{ presets: SimulatorPresetInfo[]; tps_options: number[] }>(
       "/simulator/presets",
     ),
+
+  // ── Voice authentication ────────────────────────────
+  voicePending: () => fetchAPI<VoiceConfirmation[]>("/voice/pending"),
+
+  voiceStats: () => fetchAPI<VoiceStats>("/voice/stats"),
+
+  voiceConfirmation: (confirmationId: string) =>
+    fetchAPI<VoiceConfirmation>(`/voice/pending/${encodeURIComponent(confirmationId)}`),
+
+  voiceConfirm: (confirmationId: string, confirmed: boolean, transcript = "", notes = "") =>
+    fetchAPI<LiveEnvelope>(`/voice/confirm/${encodeURIComponent(confirmationId)}`, {
+      method: "POST",
+      body: JSON.stringify({ confirmed, transcript, notes }),
+    }),
+
+  voiceRetryCall: (confirmationId: string) =>
+    fetchAPI<VoiceConfirmation>(`/voice/call/initiate/${encodeURIComponent(confirmationId)}`, {
+      method: "POST",
+    }),
 };

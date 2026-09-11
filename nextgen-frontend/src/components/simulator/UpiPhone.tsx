@@ -14,7 +14,9 @@ import {
   Wallet,
 } from "lucide-react";
 import type { SimulatorAccount } from "@/lib/api";
+import type { VoiceConfirmation } from "@/lib/api";
 import { formatAmount } from "@/lib/utils";
+import { VoiceConfirmation as VoiceConfirmationPanel } from "@/components/simulator/VoiceConfirmation";
 
 export interface PayResult {
   ok: boolean;
@@ -26,7 +28,10 @@ interface UpiPhoneProps {
   connected: boolean;
   busy?: boolean;
   lastResult?: PayResult | null;
+  voiceConfirmation?: VoiceConfirmation | null;
   onPay: (amount: number) => void | Promise<void>;
+  onVoiceDecision?: (confirmed: boolean, transcript: string) => void | Promise<void>;
+  onDismissVoice?: () => void;
 }
 
 export function UpiPhone({
@@ -34,7 +39,10 @@ export function UpiPhone({
   connected,
   busy,
   lastResult,
+  voiceConfirmation,
   onPay,
+  onVoiceDecision,
+  onDismissVoice,
 }: UpiPhoneProps) {
   const [amount, setAmount] = useState("");
 
@@ -357,6 +365,17 @@ export function UpiPhone({
               Receive with {account?.mobile ?? "—"} UPI
             </div>
           </div>
+
+          <AnimatePresence>
+            {voiceConfirmation && onVoiceDecision && (
+              <VoiceConfirmationPanel
+                confirmation={voiceConfirmation}
+                busy={busy}
+                onDecision={onVoiceDecision}
+                onDismiss={onDismissVoice}
+              />
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

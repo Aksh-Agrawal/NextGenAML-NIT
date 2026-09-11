@@ -18,6 +18,7 @@ from api.config import settings
 from graph_db.manager import GraphManager
 from ml.inference import InferenceEngine
 from ml.risk_engine import RiskEngine
+from api.voice_auth_service import VoiceAuthService
 from simulator.service import SimulatorService
 
 # ── Global singletons (populated on startup) ──────────
@@ -25,6 +26,8 @@ graph_manager = GraphManager()
 inference_engine = InferenceEngine(graph_manager, model_type=settings.GNN_MODEL_TYPE)
 risk_engine = RiskEngine(graph_manager, inference_engine)
 simulator_service = SimulatorService(graph_manager, inference_engine, risk_engine)
+voice_auth_service = VoiceAuthService(settings, simulator_service)
+simulator_service.voice_auth_service = voice_auth_service
 
 # ── Logging ───────────────────────────────────────────
 logger.remove()
@@ -108,6 +111,7 @@ from api.routers import (
     timeline,
     upload,
     simulator,
+    voice_auth,
 )
 
 app.include_router(health.router)
@@ -123,6 +127,7 @@ app.include_router(reports.router)
 app.include_router(timeline.router)
 app.include_router(upload.router)
 app.include_router(simulator.router)
+app.include_router(voice_auth.router)
 app.include_router(simulator.ws_router)
 
 # ── Frontend static files ─────────────────────────────

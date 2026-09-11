@@ -41,6 +41,29 @@ class Settings:
 
     # --- Google Gemini ---
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    GROK_API_KEY: str = os.getenv("GROK_API_KEY", "")
+    VOICE_AUTH_LLM_PROVIDER: str = os.getenv("VOICE_AUTH_LLM_PROVIDER", "gemini")
+
+    # --- Sarvam / Twilio Voice Authentication ---
+    VOICE_AUTH_ENABLED: bool = os.getenv("VOICE_AUTH_ENABLED", "true").strip().lower() in (
+        "1", "true", "yes", "on",
+    )
+    VOICE_AUTH_MOCK_MODE: bool = os.getenv("VOICE_AUTH_MOCK_MODE", "true").strip().lower() in (
+        "1", "true", "yes", "on",
+    )
+    VOICE_AUTH_THRESHOLD: float = float(os.getenv("VOICE_AUTH_THRESHOLD", "60"))
+    VOICE_AUTH_MANUAL_REVIEW_THRESHOLD: float = float(
+        os.getenv("VOICE_AUTH_MANUAL_REVIEW_THRESHOLD", "80")
+    )
+    VOICE_AUTH_RETRY_SECONDS: int = int(os.getenv("VOICE_AUTH_RETRY_SECONDS", "300"))
+    VOICE_AUTH_LANGUAGE: str = os.getenv("VOICE_AUTH_LANGUAGE", "hi-IN,en-IN")
+    SARVAM_API_KEY: str = os.getenv("SARVAM_API_KEY", "")
+    SARVAM_TTS_MODEL: str = os.getenv("SARVAM_TTS_MODEL", "bulbul:v2")
+    SARVAM_STT_MODEL: str = os.getenv("SARVAM_STT_MODEL", "saaras:v2")
+    TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
+    TWILIO_PHONE_NUMBER: str = os.getenv("TWILIO_PHONE_NUMBER", "")
+    TWILIO_PUBLIC_BASE_URL: str = os.getenv("TWILIO_PUBLIC_BASE_URL", "")
 
     # --- Transaction Simulator ---
     SIMULATOR_REPLAY_LEDGER: bool = os.getenv("SIMULATOR_REPLAY_LEDGER", "false").strip().lower() in (

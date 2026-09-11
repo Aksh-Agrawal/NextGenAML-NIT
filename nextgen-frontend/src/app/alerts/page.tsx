@@ -23,6 +23,7 @@ import {
   ErrorCard,
   StatPill,
 } from "@/components/ui";
+import { VoiceAuthDashboard } from "@/components/VoiceAuthDashboard";
 
 type SortKey = "account_id" | "risk_score" | "volume_30d" | "transaction_count";
 type SortDir = "asc" | "desc";
@@ -234,6 +235,8 @@ export default function AlertsPage() {
           </div>
         </div>
       </div>
+
+      <VoiceAuthDashboard />
 
       {/* Table */}
       <motion.div

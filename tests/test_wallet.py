@@ -8,14 +8,16 @@ def _wallet():
 def test_seed_accounts_present():
     w = _wallet()
     ids = w.ids()
-    assert len(ids) == 8
+    assert len(ids) == 11
     assert "RAHUL" in ids and "SONIA" in ids
+    assert "JAY" in ids and "AKSH" in ids and "PRATYUSH" in ids
 
 
 def test_resolve_by_id_mobile_upi():
     w = _wallet()
     assert w.resolve(account_id="rahul") == "RAHUL"
     assert w.resolve(mobile="9876543211") == "PRIYA"
+    assert w.resolve(mobile="+917647988651") == "AKSH"
     assert w.resolve(upi_id="akash@demo") == "AKASH"
     assert w.resolve(account_id="NOPE") is None
 

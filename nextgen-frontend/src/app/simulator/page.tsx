@@ -6,12 +6,13 @@ import { motion } from "framer-motion";
 import {
   Activity,
   Smartphone,
+  PhoneCall,
   Radio,
   PlayCircle,
   ScrollText,
   UserPlus,
 } from "lucide-react";
-import { api, type SimulatorStreamState } from "@/lib/api";
+import { api, type SimulatorStreamState, type VoiceConfirmation } from "@/lib/api";
 import { useLiveTransactions } from "@/lib/useLiveTransactions";
 import { LoadingState, ErrorCard } from "@/components/ui";
 import { UpiPhone, type PayResult } from "@/components/simulator/UpiPhone";
@@ -49,6 +50,8 @@ export default function SimulatorPage() {
   const [recipientId, setRecipientId] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [payResult, setPayResult] = useState<PayResult | null>(null);
+  const [activeVoice, setActiveVoice] = useState<VoiceConfirmation | null>(null);
+  const [voiceTestId, setVoiceTestId] = useState<string>("");
   const [streamStatus, setStreamStatus] = useState<SimulatorStreamState | null>(
     null,
   );
@@ -72,8 +75,24 @@ export default function SimulatorPage() {
 
   useEffect(() => {
     for (const t of txns) {
-      if (appliedTxns.current.has(t.transaction_id)) continue;
-      appliedTxns.current.add(t.transaction_id);
+      const key = `${t.transaction_id}_${t.status}`;
+      if (appliedTxns.current.has(key)) continue;
+      appliedTxns.current.add(key);
+
+      // Auto-dismiss Voice Auth UI if a real call resolution comes through the stream
+      if (activeVoice && activeVoice.transaction_id === t.transaction_id) {
+        if (t.status === "success" || t.status === "failed" || t.status === "withdrawn") {
+          setActiveVoice(null);
+          setPayResult({
+            ok: t.status === "success",
+            message:
+              t.status === "success"
+                ? `Voice confirmed. ₹${t.amount.toLocaleString("en-IN")} sent to ${t.receiver}`
+                : t.failure_reason || "Transaction withdrawn after voice check",
+          });
+        }
+      }
+
       if (t.status !== "success") continue;
       setBalances((prev) => {
         const next = { ...prev };
@@ -86,7 +105,7 @@ export default function SimulatorPage() {
         return next;
       });
     }
-  }, [txns]);
+  }, [txns, activeVoice]);
 
   const displayAccounts = useMemo(
     () =>
@@ -109,7 +128,7 @@ export default function SimulatorPage() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts]);
+  }, [accounts, selectedId]);
 
   useEffect(() => {
     if (stats?.stream && stats.stream.state !== streamStatus?.state) {
@@ -136,6 +155,15 @@ export default function SimulatorPage() {
         remark: "Phone pay",
         channel: "UPI",
       });
+      if (env.transaction.status === "pending_voice_confirmation" && env.transaction.confirmation_id) {
+        const confirmation = await api.voiceConfirmation(env.transaction.confirmation_id);
+        setActiveVoice(confirmation);
+        setPayResult({
+          ok: false,
+          message: `Verification call required for ₹${amount.toLocaleString("en-IN")}`,
+        });
+        return;
+      }
       const ok = env.transaction.status === "success";
       setPayResult({
         ok,
@@ -143,6 +171,72 @@ export default function SimulatorPage() {
           ? `₹${amount.toLocaleString("en-IN")} sent to ${recipientId}`
           : env.transaction.failure_reason || "Payment failed",
       });
+    } catch (e) {
+      setPayResult({ ok: false, message: `Payment error: ${String(e)}` });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
+  const handleVoiceDecision = async (confirmed: boolean, transcript: string) => {
+    if (!activeVoice) return;
+    setBusy(true);
+    try {
+      const env = await api.voiceConfirm(activeVoice.confirmation_id, confirmed, transcript);
+      const ok = env.transaction.status === "success";
+      setPayResult({
+        ok,
+        message: ok
+          ? `Voice confirmed. ₹${env.transaction.amount.toLocaleString("en-IN")} sent to ${env.transaction.receiver}`
+          : env.transaction.failure_reason || "Transaction withdrawn after voice check",
+      });
+      if (ok) {
+        appliedTxns.current.add(`${env.transaction.transaction_id}_${env.transaction.status}`);
+        setBalances((prev) => {
+          const next = { ...prev };
+          if (next[env.transaction.sender] !== undefined) {
+            next[env.transaction.sender] =
+              Math.round((next[env.transaction.sender] - env.transaction.amount) * 100) / 100;
+          }
+          if (next[env.transaction.receiver] !== undefined) {
+            next[env.transaction.receiver] =
+              Math.round((next[env.transaction.receiver] + env.transaction.amount) * 100) / 100;
+          }
+          return next;
+        });
+      }
+      setActiveVoice(null);
+    } catch (e) {
+      setPayResult({ ok: false, message: `Voice verification error: ${String(e)}` });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleVoiceTest = async () => {
+    const senderId = voiceTestId || (accounts.length > 0 ? accounts[0].account_id : "");
+    if (!senderId) return;
+    const testRecipient = accounts.find((a) => a.account_id !== senderId)?.account_id;
+    if (!testRecipient) return;
+    setBusy(true);
+    setPayResult(null);
+    try {
+      const env = await api.simulatorPay({
+        sender: senderId,
+        receiver: testRecipient,
+        amount: 95001,
+        remark: "Voice Test Trigger",
+        channel: "UPI",
+      });
+      if (env.transaction.status === "pending_voice_confirmation" && env.transaction.confirmation_id) {
+        const confirmation = await api.voiceConfirmation(env.transaction.confirmation_id);
+        setActiveVoice(confirmation);
+        setPayResult({
+          ok: false,
+          message: `Verification call required for ₹95,001`,
+        });
+      }
     } catch (e) {
       setPayResult({ ok: false, message: `Payment error: ${String(e)}` });
     } finally {
@@ -232,37 +326,33 @@ export default function SimulatorPage() {
               </span>
             </div>
 
-            {/* Account selector */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {displayAccounts.map((a) => (
-                <button
-                  key={a.account_id}
-                  onClick={() => setSelectedId(a.account_id)}
-                  title={`${a.name} (ID: ${a.account_id}) · ₹${a.balance.toLocaleString("en-IN")}`}
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: "50%",
-                    background: a.avatar_color,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 800,
-                    fontSize: 12,
-                    color: "#0b0f19",
-                    cursor: "pointer",
-                    border: selectedId === a.account_id
-                      ? "2px solid var(--accent-blue)"
-                      : "2px solid transparent",
-                    boxShadow: selectedId === a.account_id
-                      ? "0 0 12px rgba(0,229,255,0.5)"
-                      : "none",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  {a.name.slice(0, 1).toUpperCase()}
-                </button>
-              ))}
+            {/* Sender selector */}
+            <div className="mb-3">
+              <label
+                style={{
+                  fontSize: 10,
+                  color: "var(--text-muted)",
+                  display: "block",
+                  marginBottom: 4,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.6px",
+                }}
+              >
+                Paying from
+              </label>
+              <select
+                className="select-dark"
+                style={{ width: "100%" }}
+                value={selectedId}
+                onChange={(e) => setSelectedId(e.target.value)}
+              >
+                {displayAccounts.length === 0 && <option value="">No accounts</option>}
+                {displayAccounts.map((a) => (
+                  <option key={a.account_id} value={a.account_id}>
+                    {a.name} (ID: {a.account_id})
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Recipient selector */}
@@ -299,7 +389,10 @@ export default function SimulatorPage() {
               connected={connected}
               busy={busy}
               lastResult={payResult}
+              voiceConfirmation={activeVoice}
               onPay={handlePay}
+              onVoiceDecision={handleVoiceDecision}
+              onDismissVoice={() => setActiveVoice(null)}
             />
           </motion.div>
 
@@ -408,6 +501,52 @@ export default function SimulatorPage() {
         ) : (
           <PresetPicker presets={presetsData?.presets ?? []} busy={busy} onRun={handlePresetRun} />
         )}
+      </motion.div>
+
+
+      {/* Voice Auth Test node */}
+      <motion.div
+        className="card p-4"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.18 }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <PhoneCall size={14} style={{ color: "var(--accent-purple)" }} />
+          <span style={{ fontSize: 13, fontWeight: 600 }}>
+            Trigger Voice Call
+          </span>
+          <span
+            style={{
+              fontSize: 10,
+              color: "var(--text-muted)",
+              marginLeft: "auto",
+            }}
+          >
+            force a high-value transaction to test voice auth
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <select
+            className="select-dark"
+            style={{ width: "200px" }}
+            value={voiceTestId || (accounts.length > 0 ? accounts[0].account_id : "")}
+            onChange={(e) => setVoiceTestId(e.target.value)}
+          >
+            {displayAccounts.map((a) => (
+              <option key={a.account_id} value={a.account_id}>
+                {a.name} (ID: {a.account_id})
+              </option>
+            ))}
+          </select>
+          <button
+            className="btn-primary"
+            onClick={handleVoiceTest}
+            disabled={busy}
+          >
+            Trigger Call
+          </button>
+        </div>
       </motion.div>
 
       {/* History table */}

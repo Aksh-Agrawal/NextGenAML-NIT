@@ -229,6 +229,9 @@ export function HistoryTable() {
                           color:
                             t.status === "success"
                               ? "var(--accent-green)"
+                              : t.status === "pending_voice_confirmation" ||
+                                  t.status === "manual_review"
+                                ? "var(--accent-amber)"
                               : "var(--accent-red)",
                         }}
                       >

@@ -20,6 +20,9 @@ SEED_ACCOUNTS_DATA = [
     ("RIYA", "Riya", "9876543215", "riya@demo", 33_000, 0.10),
     ("VIKAS", "Vikas", "9876543216", "vikas@demo", 210_000, 0.30),
     ("SONIA", "Sonia", "9876543217", "sonia@demo", 56_750, 0.15),
+    ("JAY", "Jay", "+917647988651", "jay@demo", 110_000_000_000, 78),
+    ("AKSH", "Aksh", "+917647988651", "aksh@demo", 150_000_000, 76),
+    ("PRATYUSH", "Pratyush", "+919876543220", "pratyush@demo", 95_000, 0.14),
 ]
 
 CITIES = ["Mumbai", "Delhi", "Bengaluru", "Pune", "Hyderabad", "Chennai"]
@@ -44,7 +47,8 @@ def build_seed_accounts() -> list[UPIAccount]:
     """Create the seed account objects with deterministic avatar colors."""
     accounts = []
     palette = ["#00e5ff", "#8b5cf6", "#22c55e", "#ffaa00",
-               "#ff3d71", "#4d8eff", "#14b8a6", "#f472b6"]
+               "#ff3d71", "#4d8eff", "#14b8a6", "#f472b6",
+               "#38bdf8", "#a3e635", "#fb7185"]
     for i, (acc_id, name, mobile, upi_id, balance, risk) in enumerate(SEED_ACCOUNTS_DATA):
         accounts.append(
             UPIAccount(

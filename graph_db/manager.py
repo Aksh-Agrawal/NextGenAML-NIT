@@ -412,7 +412,10 @@ class GraphManager:
             )
             selected = set(scored[:limit])
             # Ensure simulator accounts are present so funds flow graph shows them
-            simulator_accounts = {"RAHUL", "PRIYA", "AKASH", "NEHA", "AMAN", "RIYA", "VIKAS", "SONIA"}
+            simulator_accounts = {
+                "RAHUL", "PRIYA", "AKASH", "NEHA", "AMAN", "RIYA", "VIKAS",
+                "SONIA", "JAY", "AKSH", "PRATYUSH",
+            }
             for sa in simulator_accounts:
                 if sa in self.G:
                     selected.add(sa)

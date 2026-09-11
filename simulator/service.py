@@ -97,6 +97,7 @@ class SimulatorService:
         self.ledger = JsonlLedger(settings.SIMULATOR_LEDGER_PATH)
         self.alert_registry = AlertRegistry(JsonlLedger(settings.SIMULATOR_ALERTS_PATH))
         self.stats = LiveStats()
+        self.voice_auth_service = None
 
         self._history: list[dict] = []      # newest first
         self._history_lock = threading.Lock()
@@ -338,38 +339,55 @@ class SimulatorService:
         amount = float(tx["amount"])
         tx["sender"], tx["receiver"] = sender, receiver
 
-        # 1. Wallet settlement (atomic debit / credit)
-        if tx["status"] != "failed":
+        # 1. Reject impossible payments before risk routing.
+        if self.wallet.get_balance(sender) < amount:
+            tx["status"] = "failed"
+            tx["failure_reason"] = "Insufficient balance"
+
+        # 2. Risk rescore before settlement so risky payments can be held.
+        scores = self._rescore([sender, receiver])
+        self._ensure_high_risk()
+        self._update_high_risk(scores)
+        alert = None
+        tx_risk = self._evaluate_transaction_risk(tx, scores)
+
+        # 3. Route by transaction risk.
+        graph_delta = {"new_nodes": [], "new_edges": [], "updated_node_ids": []}
+        if tx["status"] == "failed":
+            pass
+        elif (
+            settings.VOICE_AUTH_ENABLED
+            and tx_risk["score"] >= settings.VOICE_AUTH_MANUAL_REVIEW_THRESHOLD
+        ):
+            tx["status"] = "manual_review"
+            tx["failure_reason"] = "Fraud probability above manual review threshold"
+            tx["voice_status"] = "manual_review_required"
+            tx["voice_notes"] = "Risk score exceeded 80%; routed to analyst dashboard."
+            alert = self._create_transaction_alert(
+                tx, tx_risk, reason="Manual review required before settlement"
+            )
+        elif settings.VOICE_AUTH_ENABLED and tx_risk["score"] >= settings.VOICE_AUTH_THRESHOLD:
+            tx["status"] = "pending_voice_confirmation"
+            tx["voice_status"] = "calling"
+            tx["voice_notes"] = "Transaction held pending Sarvam/Twilio voice confirmation."
+            alert = self._create_transaction_alert(
+                tx, tx_risk, reason="Voice confirmation required before settlement"
+            )
+            if self.voice_auth_service is not None:
+                confirmation = self.voice_auth_service.hold_transaction(tx, tx_risk)
+                tx["confirmation_id"] = confirmation.confirmation_id
+                tx["voice_call_sid"] = confirmation.call_sid
+                tx["voice_prompt"] = confirmation.prompt
+        else:
             if not self.wallet.debit(sender, amount):
                 tx["status"] = "failed"
                 tx["failure_reason"] = "Insufficient balance"
             else:
                 self.wallet.credit(receiver, amount)
-
-        # 2. Incremental risk rescore (sender, receiver + 1-hop neighbors)
-        scores = self._rescore([sender, receiver])
-        self._ensure_high_risk()
-        self._update_high_risk(scores)
-
-        # 3. Transaction-level risk + alert
-        tx_risk = self._evaluate_transaction_risk(tx, scores)
-        alert = None
-        if tx_risk["score"] >= 50:
-            alert = self.alert_registry.create(
-                transaction_id=tx["transaction_id"],
-                sender=sender,
-                receiver=receiver,
-                amount=amount,
-                severity=tx_risk["level"],
-                reason=tx_risk["reason"] or "; ".join(tx_risk["flags"]),
-            )
-            alert_log(f"{alert['id']} {tx_risk['level'].upper()} "
-                      f"{sender} -> {receiver} ₹{amount:,.0f} "
-                      f"({alert['reason']})")
+                tx["status"] = "success"
 
         # 4. Incremental graph insert (only successful payments mutate the graph)
-        graph_delta = {"new_nodes": [], "new_edges": [], "updated_node_ids": []}
-        if tx["status"] != "failed":
+        if tx["status"] == "success":
             inserted = self.gm.add_transaction(tx)
             graph_delta = self._build_graph_delta(tx, inserted)
             self.wallet.record(tx)
@@ -393,6 +411,96 @@ class SimulatorService:
         self._tx_counter += 1
 
         return self._build_envelope(tx, scores, tx_risk, alert, graph_delta)
+
+    def finalize_voice_confirmation(self, confirmation: dict, *, approved: bool) -> dict:
+        """Settle or withdraw a held transaction after customer voice response."""
+        tx = dict(confirmation["transaction"])
+        tx["confirmation_id"] = confirmation["confirmation_id"]
+        tx["voice_status"] = confirmation["status"]
+        tx["voice_outcome"] = confirmation["outcome"]
+        tx["voice_notes"] = confirmation["notes"]
+        tx["voice_transcript"] = confirmation["transcript"]
+
+        sender = str(tx["sender"]).upper()
+        receiver = str(tx["receiver"]).upper()
+        amount = float(tx["amount"])
+        tx["sender"], tx["receiver"] = sender, receiver
+
+        graph_delta = {"new_nodes": [], "new_edges": [], "updated_node_ids": []}
+        scores = self._rescore([sender, receiver])
+        alert = None
+
+        if approved:
+            if not self.wallet.debit(sender, amount):
+                tx["status"] = "failed"
+                tx["failure_reason"] = "Insufficient balance after voice confirmation"
+                adjusted_risk = dict(confirmation["tx_risk"])
+            else:
+                self.wallet.credit(receiver, amount)
+                tx["status"] = "success"
+                tx["failure_reason"] = None
+                inserted = self.gm.add_transaction(tx)
+                graph_delta = self._build_graph_delta(tx, inserted)
+                self.wallet.record(tx)
+                scores = self._rescore([sender, receiver])
+                self._update_high_risk(scores)
+                adjusted_risk = self._voice_adjusted_risk(confirmation["tx_risk"])
+        else:
+            tx["status"] = "withdrawn"
+            tx["failure_reason"] = "Customer denied transaction during voice confirmation"
+            adjusted_risk = dict(confirmation["tx_risk"])
+            adjusted_risk["flags"] = list(dict.fromkeys(adjusted_risk.get("flags", []) + ["voice_denied"]))
+            adjusted_risk["reason"] = "Customer denied transaction; funds were not moved"
+
+        record = self._build_history_record(tx, adjusted_risk, scores)
+        self._upsert_history(record)
+        self.ledger.append(record)
+
+        envelope = self._build_envelope(tx, scores, adjusted_risk, alert, graph_delta)
+        envelope["type"] = "VOICE_CONFIRMATION_RESULT"
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self.broadcast(envelope))
+        except RuntimeError:
+            pass
+        return envelope
+
+    def _create_transaction_alert(self, tx: dict, tx_risk: dict, reason: str | None = None) -> dict:
+        alert = self.alert_registry.create(
+            transaction_id=tx["transaction_id"],
+            sender=tx["sender"],
+            receiver=tx["receiver"],
+            amount=tx["amount"],
+            severity=tx_risk["level"],
+            reason=reason or tx_risk["reason"] or "; ".join(tx_risk["flags"]),
+        )
+        alert_log(f"{alert['id']} {tx_risk['level'].upper()} "
+                  f"{tx['sender']} -> {tx['receiver']} ₹{float(tx['amount']):,.0f} "
+                  f"({alert['reason']})")
+        return alert
+
+    def _upsert_history(self, record: dict) -> None:
+        with self._history_lock:
+            for idx, item in enumerate(self._history):
+                if item["transaction_id"] == record["transaction_id"]:
+                    self._history[idx] = record
+                    break
+            else:
+                self._history.insert(0, record)
+            self._history.sort(key=lambda item: item["timestamp"], reverse=True)
+            if len(self._history) > 2000:
+                self._history = self._history[:2000]
+
+    @staticmethod
+    def _voice_adjusted_risk(tx_risk: dict) -> dict:
+        score = min(float(tx_risk.get("score", 0)) * 0.45, 35.0)
+        level = "medium" if score >= 30 else "low"
+        adjusted = dict(tx_risk)
+        adjusted["score"] = round(score, 1)
+        adjusted["level"] = level
+        adjusted["flags"] = list(dict.fromkeys(adjusted.get("flags", []) + ["voice_confirmed"]))
+        adjusted["reason"] = "Customer confirmed transaction by voice; risk reduced"
+        return adjusted
 
     # ── Envelope helpers ───────────────────────────────
     def _new_tx_id(self) -> str:
@@ -463,6 +571,13 @@ class SimulatorService:
             "channel": tx["channel"],
             "status": tx["status"],
             "failure_reason": tx.get("failure_reason"),
+            "confirmation_id": tx.get("confirmation_id"),
+            "voice_status": tx.get("voice_status"),
+            "voice_outcome": tx.get("voice_outcome"),
+            "voice_notes": tx.get("voice_notes"),
+            "voice_call_sid": tx.get("voice_call_sid"),
+            "voice_prompt": tx.get("voice_prompt"),
+            "voice_transcript": tx.get("voice_transcript", []),
             "risk_score": tx_risk["score"],
             "risk_level": tx_risk["level"],
             "flags": tx_risk["flags"],
@@ -489,6 +604,13 @@ class SimulatorService:
                 "channel": tx["channel"],
                 "status": tx["status"],
                 "failure_reason": tx.get("failure_reason"),
+                "confirmation_id": tx.get("confirmation_id"),
+                "voice_status": tx.get("voice_status"),
+                "voice_outcome": tx.get("voice_outcome"),
+                "voice_notes": tx.get("voice_notes"),
+                "voice_call_sid": tx.get("voice_call_sid"),
+                "voice_prompt": tx.get("voice_prompt"),
+                "voice_transcript": tx.get("voice_transcript", []),
             },
             "risk": {
                 "sender": scores.get(tx["sender"]),

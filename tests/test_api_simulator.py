@@ -15,7 +15,7 @@ def test_list_accounts(client):
     r = client.get("/simulator/accounts")
     assert r.status_code == 200
     accounts = r.json()
-    assert len(accounts) == 8
+    assert len(accounts) == 11
     assert {"account_id", "name", "balance", "upi_id"} <= set(accounts[0])
 
 

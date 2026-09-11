@@ -115,7 +115,9 @@ export function useLiveTransactions() {
       ws.onmessage = (e) => {
         try {
           const data = JSON.parse(e.data as string) as LiveEnvelope;
-          if (data.type === "NEW_TRANSACTION") pushEnvelope(data);
+          if (data.type === "NEW_TRANSACTION" || data.type === "VOICE_CONFIRMATION_RESULT") {
+            pushEnvelope(data);
+          }
         } catch {
           /* non-JSON heartbeat – ignore */
         }
