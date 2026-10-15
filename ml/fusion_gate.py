@@ -147,14 +147,23 @@ def load_fusion_gate(dir_path=CHECKPOINT_DIR):
 
     fmt = meta.get("model_format", "sklearn")
     if fmt == "torch":
+        checkpoint_path = dir_path / "fusion_gate.pt"
+        if not checkpoint_path.exists():
+            logger.warning(f"Fusion gate checkpoint missing: {checkpoint_path}")
+            return None, meta
         if not _TORCH:
             logger.warning("Checkpoint is torch format but torch is unavailable")
             return None, meta
         gate = FusionGate()
-        gate.load_state_dict(torch.load(dir_path / "fusion_gate.pt", map_location="cpu", weights_only=True))
+        gate.load_state_dict(torch.load(checkpoint_path, map_location="cpu", weights_only=True))
         gate.eval()
         return gate, meta
 
-    with open(dir_path / "fusion_gate.pkl", "rb") as f:
+    checkpoint_path = dir_path / "fusion_gate.pkl"
+    if not checkpoint_path.exists():
+        logger.warning(f"Fusion gate checkpoint missing: {checkpoint_path}")
+        return None, meta
+
+    with open(checkpoint_path, "rb") as f:
         gate = pickle.load(f)
     return gate, meta
