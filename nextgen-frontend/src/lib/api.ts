@@ -356,6 +356,11 @@ export interface UploadCsvResponse {
   edges: number;
 }
 
+export interface UploadProgress {
+  percent: number;
+  message: string;
+}
+
 // ── API Functions ──────────────────────────────────────
 
 export const api = {
@@ -363,13 +368,58 @@ export const api = {
 
   uploadStatus: () => fetchAPI<UploadStatusResponse>("/upload/status"),
 
-  uploadTransactions: async (file: File) => {
+  uploadTransactions: async (
+    file: File,
+    onProgress?: (progress: UploadProgress) => void,
+  ) => {
     const formData = new FormData();
     formData.append("file", file);
 
-    return fetchAPI<UploadCsvResponse>("/upload/csv", {
-      method: "POST",
-      body: formData,
+    return new Promise<UploadCsvResponse>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_BASE}/upload/csv`);
+
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable) {
+          onProgress?.({
+            percent: 12,
+            message: "Uploading file...",
+          });
+          return;
+        }
+
+        const uploadPercent = Math.round((event.loaded / event.total) * 85);
+        onProgress?.({
+          percent: Math.max(5, Math.min(uploadPercent, 85)),
+          message: "Uploading file...",
+        });
+      };
+
+      xhr.upload.onload = () => {
+        onProgress?.({
+          percent: 90,
+          message: "Updating graph, model, and risk scores...",
+        });
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          onProgress?.({
+            percent: 100,
+            message: "Update complete",
+          });
+          resolve(JSON.parse(xhr.responseText) as UploadCsvResponse);
+          return;
+        }
+
+        reject(new Error(`API error ${xhr.status}: ${xhr.responseText}`));
+      };
+
+      xhr.onerror = () => {
+        reject(new Error("Upload failed. Please check your connection."));
+      };
+
+      xhr.send(formData);
     });
   },
 

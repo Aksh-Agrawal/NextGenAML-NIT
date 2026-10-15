@@ -56,6 +56,8 @@ export default function DashboardPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState<string | null>(null);
 
   const {
     data: stats,
@@ -92,9 +94,19 @@ export default function DashboardPage() {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: api.uploadTransactions,
+    mutationFn: (file: File) =>
+      api.uploadTransactions(file, ({ percent, message }) => {
+        setUploadProgress(percent);
+        setUploadStage(message);
+      }),
+    onMutate: () => {
+      setUploadProgress(4);
+      setUploadStage("Preparing upload...");
+    },
     onSuccess: async (response) => {
       setUploadError(null);
+      setUploadProgress(100);
+      setUploadStage("Update complete");
       setUploadNotice(
         `Loaded ${response.filename} (${response.rows.toLocaleString()} rows)`,
       );
@@ -116,6 +128,7 @@ export default function DashboardPage() {
       const message = error instanceof Error ? error.message : "Upload failed";
       setUploadError(message);
       setUploadNotice(null);
+      setUploadStage("Upload failed");
     },
   });
 
@@ -127,6 +140,18 @@ export default function DashboardPage() {
       setLatestAlerts(alerts);
     }
   }, [alerts]);
+
+  useEffect(() => {
+    if (!uploadMutation.isPending || uploadProgress < 90) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setUploadProgress((current) => (current < 96 ? current + 1 : current));
+    }, 1500);
+
+    return () => window.clearInterval(timer);
+  }, [uploadMutation.isPending, uploadProgress]);
 
   // Build trend data for spark chart
   const trendData = dashboard?.trends
@@ -317,6 +342,8 @@ export default function DashboardPage() {
                 setSelectedFile(file);
                 setUploadError(null);
                 setUploadNotice(null);
+                setUploadProgress(0);
+                setUploadStage(null);
               }}
               className="block w-full text-[12px] text-[var(--text-secondary)] file:mr-4 file:rounded-lg file:border-0 file:bg-[rgba(255,255,255,0.08)] file:px-4 file:py-2 file:text-[12px] file:font-semibold file:text-white hover:file:bg-[rgba(255,255,255,0.12)]"
             />
@@ -353,6 +380,45 @@ export default function DashboardPage() {
                 </span>
               )}
             </div>
+
+            {(uploadMutation.isPending || uploadProgress > 0) && (
+              <div
+                className="space-y-2"
+                role="status"
+                aria-live="polite"
+                aria-label="Upload progress"
+              >
+                <div className="flex items-center justify-between gap-3 text-[11px]">
+                  <span style={{ color: "var(--text-secondary)" }}>
+                    {uploadStage ?? "Waiting to upload..."}
+                  </span>
+                  <span
+                    className="font-mono"
+                    style={{ color: "var(--accent-blue)" }}
+                  >
+                    {Math.round(uploadProgress)}%
+                  </span>
+                </div>
+                <div
+                  className="progress-track"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(uploadProgress)}
+                  role="progressbar"
+                >
+                  <div
+                    className="progress-fill"
+                    style={{
+                      width: `${uploadProgress}%`,
+                      background:
+                        uploadError != null
+                          ? "var(--accent-red)"
+                          : "linear-gradient(90deg, var(--accent-blue), var(--accent-green))",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
